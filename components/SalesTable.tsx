@@ -205,9 +205,21 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
       // jspdf-autotable v5+ exporta applyPlugin que registra el plugin en el prototipo
       if (autoTableModule.applyPlugin) {
         autoTableModule.applyPlugin(jsPDF);
-      } else if (autoTableModule.default && typeof autoTableModule.default === "function") {
-        // Fallback: usar default si applyPlugin no está disponible
-        autoTableModule.default(jsPDF);
+      } else if (autoTableModule.default) {
+        // Fallback: verificar si default es applyPlugin o necesita otro método
+        const defaultExport = autoTableModule.default as any;
+        if (typeof defaultExport === "function") {
+          // Si es una función, podría ser applyPlugin o autoTable
+          // applyPlugin toma un argumento (jsPDF constructor)
+          // autoTable toma 2 argumentos (doc, options)
+          // Intentar como applyPlugin primero
+          try {
+            defaultExport(jsPDF);
+          } catch (e) {
+            // Si falla, el plugin podría ya estar registrado
+            console.warn("No se pudo aplicar autoTable plugin:", e);
+          }
+        }
       }
       
       // Crear instancia de jsPDF usando formato v3 (objeto de opciones)
