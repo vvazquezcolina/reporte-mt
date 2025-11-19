@@ -190,18 +190,32 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
 
   const handleExportPDF = async () => {
     try {
-      // Importación dinámica de jsPDF para evitar problemas en SSR
+      // Importación dinámica de jsPDF y jspdf-autotable para evitar problemas en SSR
       const jsPDFModule = await import("jspdf");
-      await import("jspdf-autotable");
+      const autoTableModule = await import("jspdf-autotable");
       
-      // Obtener la clase jsPDF - puede venir como default o como exportación nombrada
-      const jsPDF = jsPDFModule.default || (jsPDFModule as any).jsPDF;
+      // jsPDF v3.x exporta la clase jsPDF como named export 'jsPDF' o como 'default'
+      const jsPDF = jsPDFModule.jsPDF || jsPDFModule.default;
       
       if (!jsPDF || typeof jsPDF !== "function") {
-        throw new Error("jsPDF no se pudo cargar correctamente");
+        throw new Error("No se pudo importar jsPDF correctamente");
       }
       
-      const doc = new jsPDF("landscape", "mm", "a4");
+      // Registrar el plugin autoTable en jsPDF usando applyPlugin
+      // jspdf-autotable v5+ exporta applyPlugin que registra el plugin en el prototipo
+      if (autoTableModule.applyPlugin) {
+        autoTableModule.applyPlugin(jsPDF);
+      } else if (autoTableModule.default && typeof autoTableModule.default === "function") {
+        // Fallback: usar default si applyPlugin no está disponible
+        autoTableModule.default(jsPDF);
+      }
+      
+      // Crear instancia de jsPDF usando formato v3 (objeto de opciones)
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4"
+      });
       const today = new Date();
       const dateStr = today.toLocaleDateString("es-MX");
       
@@ -258,7 +272,20 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
       ]);
       totalRowIndex.push(currentRowIndex);
       
-      // Generar tabla con autoTable (jspdf-autotable extiende doc con el método autoTable)
+      // Verificar que autoTable esté disponible en el documento
+      // Después de aplicar el plugin, autoTable debería estar disponible en todas las instancias
+      if (!(doc as any).autoTable) {
+        // Si aún no está disponible, intentar registrarlo de nuevo
+        if (autoTableModule.applyPlugin) {
+          autoTableModule.applyPlugin(jsPDF);
+        }
+        
+        // Verificar una vez más
+        if (!(doc as any).autoTable) {
+          throw new Error("autoTable no está disponible después de registrar el plugin. Verifica que jspdf-autotable esté instalado correctamente.");
+        }
+      }
+      
       (doc as any).autoTable({
         head: [["FECHA", "PRODUCTO", "PRECIO", "RESERVAS", "PERSONAS", "TOTAL"]],
         body: tableData,
@@ -311,9 +338,15 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
       // Nombre del archivo
       const fileName = `Reporte_${locationName.replace(/\s+/g, "_")}_${dateStr.replace(/\//g, "_")}.pdf`;
       doc.save(fileName);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al generar PDF:", error);
-      alert("Error al generar el PDF. Por favor, intenta de nuevo.");
+      const errorMessage = error?.message || "Error desconocido";
+      console.error("Detalles del error:", {
+        message: errorMessage,
+        stack: error?.stack,
+        error
+      });
+      alert(`Error al generar el PDF: ${errorMessage}. Revisa la consola para más detalles.`);
     }
   };
 

@@ -133,16 +133,17 @@ export default function Calendar({ value, onChange, disabled = false }: Calendar
             position: "absolute",
             top: "100%",
             left: 0,
-            right: 0,
             marginTop: "8px",
             backgroundColor: "#1a1a1a",
             border: "1px solid #555",
             borderRadius: "8px",
-            padding: "clamp(16px, 3vw, 20px)",
+            padding: "clamp(12px, 2.5vw, 20px)",
             zIndex: 1000,
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
             minWidth: "280px",
-            maxWidth: "100vw",
+            width: "100%",
+            maxWidth: "min(400px, calc(100vw - 24px))",
+            boxSizing: "border-box",
           }}
         >
           {/* Header del calendario */}
@@ -177,9 +178,11 @@ export default function Calendar({ value, onChange, disabled = false }: Calendar
             <h3
               style={{
                 color: "#ffffff",
-                fontSize: "clamp(16px, 3vw, 18px)",
+                fontSize: "clamp(14px, 2.5vw, 18px)",
                 fontWeight: "600",
                 margin: 0,
+                textAlign: "center",
+                flex: 1,
               }}
             >
               {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
@@ -211,7 +214,7 @@ export default function Calendar({ value, onChange, disabled = false }: Calendar
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(7, 1fr)",
-              gap: "4px",
+              gap: "clamp(2px, 1vw, 4px)",
               marginBottom: "8px",
             }}
           >
@@ -220,10 +223,10 @@ export default function Calendar({ value, onChange, disabled = false }: Calendar
                 key={day}
                 style={{
                   textAlign: "center",
-                  fontSize: "12px",
+                  fontSize: "clamp(10px, 2vw, 12px)",
                   fontWeight: "600",
                   color: "#888",
-                  padding: "8px 4px",
+                  padding: "clamp(6px, 1.5vw, 8px) clamp(2px, 1vw, 4px)",
                 }}
               >
                 {day}
@@ -236,12 +239,12 @@ export default function Calendar({ value, onChange, disabled = false }: Calendar
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(7, 1fr)",
-              gap: "4px",
+              gap: "clamp(2px, 1vw, 4px)",
             }}
           >
             {days.map((day, index) => {
               if (day === null) {
-                return <div key={`empty-${index}`} />;
+                return <div key={`empty-${index}`} style={{ aspectRatio: "1" }} />;
               }
 
               const year = currentMonth.getFullYear();
@@ -255,9 +258,10 @@ export default function Calendar({ value, onChange, disabled = false }: Calendar
                   key={day}
                   onClick={() => selectDate(day)}
                   style={{
-                    padding: "clamp(8px, 1.5vw, 10px)",
-                    fontSize: "clamp(12px, 2.5vw, 14px)",
+                    padding: 0,
+                    fontSize: "clamp(11px, 2.2vw, 14px)",
                     aspectRatio: "1",
+                    minHeight: "36px",
                     border: isSelected ? "2px solid #4a9eff" : "1px solid #333",
                     borderRadius: "4px",
                     backgroundColor: isSelected
@@ -268,6 +272,9 @@ export default function Calendar({ value, onChange, disabled = false }: Calendar
                     color: isSelected ? "#ffffff" : "#ffffff",
                     cursor: "pointer",
                     fontWeight: isToday ? "600" : "normal",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                   onMouseOver={(e) => {
                     if (!isSelected) {

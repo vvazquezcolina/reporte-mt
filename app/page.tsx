@@ -15,6 +15,8 @@ export default function Home() {
   const router = useRouter();
   const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const [customStartDate, setCustomStartDate] = useState<string>("");
+  const [customEndDate, setCustomEndDate] = useState<string>("");
   const [dateRangeType, setDateRangeType] = useState<DateRangeType>("day");
   const [salesData, setSalesData] = useState<SalesData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -117,6 +119,29 @@ export default function Home() {
     return dates;
   };
 
+  // Función para obtener todas las fechas entre dos fechas (inclusive)
+  const getDatesBetween = (startDate: string, endDate: string): string[] => {
+    const dates: string[] = [];
+    const start = new Date(startDate + "T00:00:00");
+    const end = new Date(endDate + "T00:00:00");
+    
+    // Asegurar que start sea antes que end
+    if (start > end) {
+      return [];
+    }
+    
+    const current = new Date(start);
+    while (current <= end) {
+      const year = current.getFullYear();
+      const month = String(current.getMonth() + 1).padStart(2, "0");
+      const day = String(current.getDate()).padStart(2, "0");
+      dates.push(`${year}-${month}-${day}`);
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return dates;
+  };
+
   // Función para cargar datos según el tipo de rango
   const loadDataByRange = async (rangeType: DateRangeType, customDate?: string, locationId?: number) => {
     const locationToUse = locationId ?? selectedLocation;
@@ -143,10 +168,20 @@ export default function Home() {
           dates = getMonthDates();
           break;
         case "custom":
-          if (customDate) {
+          if (customStartDate && customEndDate) {
+            dates = getDatesBetween(customStartDate, customEndDate);
+            if (dates.length === 0) {
+              setError("La fecha de inicio debe ser anterior a la fecha de fin");
+              setLoading(false);
+              return;
+            }
+          } else if (customDate) {
             dates = [customDate];
           } else {
-            dates = [getTodayDate()];
+            dates = [];
+            setError("Por favor, selecciona un rango de fechas");
+            setLoading(false);
+            return;
           }
           break;
       }
@@ -175,6 +210,8 @@ export default function Home() {
     setSelectedLocation(locationId);
     setSalesData([]);
     setSelectedDate("");
+    setCustomStartDate("");
+    setCustomEndDate("");
     setDateRangeType("day");
     setError(null);
     
@@ -188,7 +225,11 @@ export default function Home() {
   const handleDateRangeChange = async (rangeType: DateRangeType) => {
     setDateRangeType(rangeType);
     setSelectedDate("");
-    await loadDataByRange(rangeType);
+    setCustomStartDate("");
+    setCustomEndDate("");
+    if (rangeType !== "custom") {
+      await loadDataByRange(rangeType);
+    }
   };
 
   const handleDateChange = async (date: string) => {
@@ -196,6 +237,19 @@ export default function Home() {
     setDateRangeType("custom");
     await loadDataByRange("custom", date);
   };
+
+  // Cargar datos cuando cambien las fechas del rango personalizado
+  useEffect(() => {
+    if (dateRangeType === "custom" && customStartDate && customEndDate && selectedLocation) {
+      if (customStartDate <= customEndDate) {
+        setError(null);
+        loadDataByRange("custom").catch((err) => {
+          console.error("Error loading custom range:", err);
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customStartDate, customEndDate, dateRangeType, selectedLocation]);
 
   const selectedLocationData = availableLocations.find(
     (loc) => loc.id === selectedLocation
@@ -480,18 +534,130 @@ export default function Home() {
                     style={{
                       display: "block",
                       marginBottom: "10px",
-                      fontSize: "14px",
+                      fontSize: "clamp(13px, 2.5vw, 14px)",
                       fontWeight: "500",
                       color: "#cccccc",
                     }}
                   >
-                    Selecciona una fecha:
+                    Selecciona un rango de fechas:
                   </label>
-                  <Calendar
-                    value={selectedDate}
-                    onChange={handleDateChange}
-                    disabled={!selectedLocation}
-                  />
+                  <div style={{ 
+                    display: "flex", 
+                    flexDirection: "column",
+                    gap: "12px"
+                  }}>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "6px",
+                          fontSize: "clamp(12px, 2.5vw, 13px)",
+                          fontWeight: "500",
+                          color: "#cccccc",
+                        }}
+                      >
+                        Fecha inicio:
+                      </label>
+                      <input
+                        type="date"
+                        value={customStartDate}
+                        onChange={(e) => {
+                          const start = e.target.value;
+                          setCustomStartDate(start);
+                          if (start && customEndDate && start > customEndDate) {
+                            setError("La fecha de inicio debe ser anterior a la fecha de fin");
+                          } else {
+                            setError(null);
+                          }
+                        }}
+                        disabled={!selectedLocation}
+                        max={customEndDate || undefined}
+                        className="date-input"
+                        style={{
+                          padding: "clamp(8px, 2vw, 10px) clamp(12px, 2.5vw, 15px)",
+                          fontSize: "clamp(14px, 3vw, 16px)",
+                          border: "1px solid #555",
+                          borderRadius: "4px",
+                          width: "100%",
+                          maxWidth: "100%",
+                          backgroundColor: !selectedLocation ? "#0f0f0f" : "#1a1a1a",
+                          color: "#ffffff",
+                          cursor: !selectedLocation ? "not-allowed" : "pointer",
+                          opacity: !selectedLocation ? 0.6 : 1,
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          marginBottom: "6px",
+                          fontSize: "clamp(12px, 2.5vw, 13px)",
+                          fontWeight: "500",
+                          color: "#cccccc",
+                        }}
+                      >
+                        Fecha fin:
+                      </label>
+                      <input
+                        type="date"
+                        value={customEndDate}
+                        onChange={(e) => {
+                          const end = e.target.value;
+                          setCustomEndDate(end);
+                          if (customStartDate && end && customStartDate > end) {
+                            setError("La fecha de fin debe ser posterior a la fecha de inicio");
+                          } else {
+                            setError(null);
+                          }
+                        }}
+                        disabled={!selectedLocation}
+                        min={customStartDate || undefined}
+                        className="date-input"
+                        style={{
+                          padding: "clamp(8px, 2vw, 10px) clamp(12px, 2.5vw, 15px)",
+                          fontSize: "clamp(14px, 3vw, 16px)",
+                          border: "1px solid #555",
+                          borderRadius: "4px",
+                          width: "100%",
+                          maxWidth: "100%",
+                          backgroundColor: !selectedLocation ? "#0f0f0f" : "#1a1a1a",
+                          color: "#ffffff",
+                          cursor: !selectedLocation ? "not-allowed" : "pointer",
+                          opacity: !selectedLocation ? 0.6 : 1,
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <style jsx>{`
+                    .date-input::-webkit-calendar-picker-indicator {
+                      cursor: pointer;
+                      filter: invert(1);
+                      opacity: 0.8;
+                      padding: 4px;
+                      margin-left: 4px;
+                    }
+                    .date-input::-webkit-calendar-picker-indicator:hover {
+                      opacity: 1;
+                    }
+                    .date-input::-webkit-datetime-edit-fields-wrapper {
+                      color: #ffffff;
+                    }
+                    .date-input::-webkit-datetime-edit-text {
+                      color: #b3b3b3;
+                      padding: 0 4px;
+                    }
+                    .date-input::-webkit-datetime-edit-month-field,
+                    .date-input::-webkit-datetime-edit-day-field,
+                    .date-input::-webkit-datetime-edit-year-field {
+                      color: #ffffff;
+                    }
+                    .date-input::-moz-placeholder {
+                      color: #888;
+                    }
+                  `}</style>
                 </div>
               )}
             </div>
