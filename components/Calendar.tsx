@@ -112,15 +112,18 @@ export default function Calendar({ value, onChange, disabled = false }: Calendar
         disabled={disabled}
         placeholder="Selecciona una fecha"
         style={{
-          padding: "10px 15px",
-          fontSize: "16px",
+          padding: "clamp(8px, 2vw, 10px) clamp(12px, 2.5vw, 15px)",
+          fontSize: "clamp(14px, 3vw, 16px)",
           border: "1px solid #555",
           borderRadius: "4px",
-          minWidth: "250px",
+          width: "100%",
+          minWidth: "200px",
+          maxWidth: "100%",
           backgroundColor: disabled ? "#0f0f0f" : "#1a1a1a",
           color: "#ffffff",
           cursor: disabled ? "not-allowed" : "pointer",
           opacity: disabled ? 0.6 : 1,
+          boxSizing: "border-box",
         }}
       />
 
@@ -130,14 +133,16 @@ export default function Calendar({ value, onChange, disabled = false }: Calendar
             position: "absolute",
             top: "100%",
             left: 0,
+            right: 0,
             marginTop: "8px",
             backgroundColor: "#1a1a1a",
             border: "1px solid #555",
             borderRadius: "8px",
-            padding: "20px",
+            padding: "clamp(16px, 3vw, 20px)",
             zIndex: 1000,
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5)",
-            minWidth: "320px",
+            minWidth: "280px",
+            maxWidth: "100vw",
           }}
         >
           {/* Header del calendario */}
@@ -172,7 +177,7 @@ export default function Calendar({ value, onChange, disabled = false }: Calendar
             <h3
               style={{
                 color: "#ffffff",
-                fontSize: "18px",
+                fontSize: "clamp(16px, 3vw, 18px)",
                 fontWeight: "600",
                 margin: 0,
               }}
@@ -250,8 +255,9 @@ export default function Calendar({ value, onChange, disabled = false }: Calendar
                   key={day}
                   onClick={() => selectDate(day)}
                   style={{
-                    padding: "10px",
-                    fontSize: "14px",
+                    padding: "clamp(8px, 1.5vw, 10px)",
+                    fontSize: "clamp(12px, 2.5vw, 14px)",
+                    aspectRatio: "1",
                     border: isSelected ? "2px solid #4a9eff" : "1px solid #333",
                     borderRadius: "4px",
                     backgroundColor: isSelected

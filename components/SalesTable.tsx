@@ -319,12 +319,19 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
 
   return (
     <div className="container">
-      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", marginBottom: "20px" }}>
+      <div style={{ 
+        display: "flex", 
+        justifyContent: "flex-end", 
+        alignItems: "center", 
+        marginBottom: "clamp(16px, 3vw, 20px)",
+        flexWrap: "wrap",
+        gap: "12px"
+      }}>
         <button
           onClick={handleExportPDF}
           style={{
-            padding: "10px 20px",
-            fontSize: "14px",
+            padding: "clamp(8px, 2vw, 10px) clamp(16px, 3vw, 20px)",
+            fontSize: "clamp(12px, 2.5vw, 14px)",
             backgroundColor: "#0066cc",
             color: "#ffffff",
             border: "none",
@@ -332,6 +339,7 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
             cursor: "pointer",
             fontWeight: "600",
             transition: "background-color 0.2s",
+            whiteSpace: "nowrap",
           }}
           onMouseOver={(e) => {
             e.currentTarget.style.backgroundColor = "#0052a3";
@@ -343,7 +351,8 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
           📄 Exportar a PDF
         </button>
       </div>
-      <table className="sales-table">
+      <div className="sales-table-wrapper">
+        <table className="sales-table">
         <thead>
           <tr>
             <th className="fecha-header">FECHA</th>
@@ -394,24 +403,32 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
           </tr>
         </tbody>
       </table>
+      </div>
       <style jsx>{`
         .container {
-          padding: 20px;
+          padding: clamp(12px, 3vw, 20px);
           max-width: 1200px;
           margin: 0 auto;
           background-color: #000000;
         }
         .title {
-          font-size: 24px;
+          font-size: clamp(18px, 4vw, 24px);
           font-weight: bold;
-          margin-bottom: 20px;
+          margin-bottom: clamp(16px, 3vw, 20px);
           color: #ffffff;
+        }
+        .sales-table-wrapper {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          margin: 0 clamp(-12px, -3vw, -20px);
+          padding: 0 clamp(12px, 3vw, 20px);
         }
         .sales-table {
           width: 100%;
+          min-width: 600px;
           border-collapse: collapse;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          font-size: 14px;
+          font-size: clamp(12px, 2.5vw, 14px);
           background-color: #000000;
         }
         thead tr {
@@ -419,12 +436,13 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
           color: #ffffff;
         }
         thead th {
-          padding: 12px;
+          padding: clamp(8px, 2vw, 12px);
           text-align: left;
           font-weight: 600;
           text-transform: uppercase;
           border: 1px solid #333;
           color: #ffffff;
+          white-space: nowrap;
         }
         .fecha-header {
           background-color: #2a2a2a;
@@ -438,7 +456,7 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
           background-color: #1a1a1a;
         }
         tbody td {
-          padding: 10px 12px;
+          padding: clamp(8px, 2vw, 10px) clamp(8px, 2vw, 12px);
           border: 1px solid #333;
           color: #ffffff;
         }
@@ -455,9 +473,9 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
           background-color: #1a1a1a;
         }
         .month-header-cell {
-          padding: 12px;
+          padding: clamp(10px, 2vw, 12px);
           font-weight: 600;
-          font-size: 15px;
+          font-size: clamp(13px, 2.5vw, 15px);
           color: #ffffff;
           border: 1px solid #333;
         }
@@ -480,12 +498,12 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
         }
         .total-label-cell {
           text-align: right;
-          padding: 14px 12px;
-          font-size: 15px;
+          padding: clamp(12px, 2vw, 14px) clamp(8px, 2vw, 12px);
+          font-size: clamp(13px, 2.5vw, 15px);
         }
         .total-value {
-          font-size: 15px;
-          padding: 14px 12px;
+          font-size: clamp(13px, 2.5vw, 15px);
+          padding: clamp(12px, 2vw, 14px) clamp(8px, 2vw, 12px);
         }
       `}</style>
     </div>

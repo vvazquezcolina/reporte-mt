@@ -215,15 +215,36 @@ export default function Home() {
   }
 
   return (
-    <main style={{ minHeight: "100vh", padding: "20px", backgroundColor: "#000000" }}>
+    <main style={{ minHeight: "100vh", padding: "clamp(12px, 3vw, 20px)", backgroundColor: "#000000" }}>
       <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
-          <h1 style={{ fontSize: "32px", color: "#ffffff", margin: 0 }}>
+        <div style={{ 
+          display: "flex", 
+          flexWrap: "wrap",
+          justifyContent: "space-between", 
+          alignItems: "flex-start", 
+          gap: "16px",
+          marginBottom: "clamp(20px, 4vw, 30px)" 
+        }}>
+          <h1 style={{ 
+            fontSize: "clamp(20px, 5vw, 32px)", 
+            color: "#ffffff", 
+            margin: 0,
+            lineHeight: 1.2
+          }}>
             Reportes de Ventas - Mandala Tickets
           </h1>
-          <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+          <div style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: "12px",
+            flexWrap: "wrap"
+          }}>
             {currentUser && (
-              <span style={{ color: "#cccccc", fontSize: "14px" }}>
+              <span style={{ 
+                color: "#cccccc", 
+                fontSize: "clamp(12px, 2.5vw, 14px)",
+                whiteSpace: "nowrap"
+              }}>
                 Usuario: {currentUser.username}
               </span>
             )}
@@ -232,12 +253,13 @@ export default function Home() {
                 onClick={() => router.push("/admin")}
                 style={{
                   padding: "8px 16px",
-                  fontSize: "14px",
+                  fontSize: "clamp(12px, 2.5vw, 14px)",
                   backgroundColor: "#333",
                   color: "#ffffff",
                   border: "1px solid #555",
                   borderRadius: "4px",
                   cursor: "pointer",
+                  whiteSpace: "nowrap",
                 }}
               >
                 Administración
@@ -247,12 +269,13 @@ export default function Home() {
               onClick={handleLogout}
               style={{
                 padding: "8px 16px",
-                fontSize: "14px",
+                fontSize: "clamp(12px, 2.5vw, 14px)",
                 backgroundColor: "#333",
                 color: "#ffffff",
                 border: "1px solid #555",
                 borderRadius: "4px",
                 cursor: "pointer",
+                whiteSpace: "nowrap",
               }}
             >
               Cerrar Sesión
@@ -260,14 +283,14 @@ export default function Home() {
           </div>
         </div>
 
-        <div style={{ marginBottom: "30px", display: "flex", flexDirection: "column", gap: "20px" }}>
+        <div style={{ marginBottom: "clamp(20px, 4vw, 30px)", display: "flex", flexDirection: "column", gap: "clamp(16px, 3vw, 20px)" }}>
           <div>
             <label
               htmlFor="location-select"
               style={{
                 display: "block",
                 marginBottom: "10px",
-                fontSize: "16px",
+                fontSize: "clamp(14px, 3vw, 16px)",
                 fontWeight: "600",
                 color: "#ffffff",
               }}
@@ -281,11 +304,11 @@ export default function Home() {
               onChange={(e) => handleLocationChange(Number(e.target.value))}
               style={{
                 padding: "10px 15px",
-                fontSize: "16px",
+                fontSize: "clamp(14px, 3vw, 16px)",
                 border: "1px solid #555",
                 borderRadius: "4px",
-                minWidth: "250px",
-                maxWidth: "400px",
+                width: "100%",
+                maxWidth: "100%",
                 backgroundColor: "#1a1a1a",
                 color: "#ffffff",
                 cursor: "pointer",
@@ -327,25 +350,28 @@ export default function Home() {
                 style={{
                   display: "block",
                   marginBottom: "10px",
-                  fontSize: "16px",
+                  fontSize: "clamp(14px, 3vw, 16px)",
                   fontWeight: "600",
                   color: "#ffffff",
                 }}
               >
                 Selecciona un rango de fechas:
               </label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "15px" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "15px" }}>
                 <button
                   onClick={() => handleDateRangeChange("day")}
                   style={{
-                    padding: "10px 20px",
-                    fontSize: "14px",
+                    padding: "clamp(8px, 2vw, 10px) clamp(16px, 3vw, 20px)",
+                    fontSize: "clamp(12px, 2.5vw, 14px)",
                     backgroundColor: dateRangeType === "day" ? "#4a9eff" : "#333",
                     color: "#ffffff",
                     border: dateRangeType === "day" ? "2px solid #4a9eff" : "1px solid #555",
                     borderRadius: "4px",
                     cursor: "pointer",
                     fontWeight: dateRangeType === "day" ? "600" : "normal",
+                    whiteSpace: "nowrap",
+                    flex: "1 1 auto",
+                    minWidth: "120px",
                   }}
                   onMouseOver={(e) => {
                     if (dateRangeType !== "day") {
@@ -363,14 +389,17 @@ export default function Home() {
                 <button
                   onClick={() => handleDateRangeChange("week")}
                   style={{
-                    padding: "10px 20px",
-                    fontSize: "14px",
+                    padding: "clamp(8px, 2vw, 10px) clamp(16px, 3vw, 20px)",
+                    fontSize: "clamp(12px, 2.5vw, 14px)",
                     backgroundColor: dateRangeType === "week" ? "#4a9eff" : "#333",
                     color: "#ffffff",
                     border: dateRangeType === "week" ? "2px solid #4a9eff" : "1px solid #555",
                     borderRadius: "4px",
                     cursor: "pointer",
                     fontWeight: dateRangeType === "week" ? "600" : "normal",
+                    whiteSpace: "nowrap",
+                    flex: "1 1 auto",
+                    minWidth: "120px",
                   }}
                   onMouseOver={(e) => {
                     if (dateRangeType !== "week") {
@@ -388,14 +417,17 @@ export default function Home() {
                 <button
                   onClick={() => handleDateRangeChange("month")}
                   style={{
-                    padding: "10px 20px",
-                    fontSize: "14px",
+                    padding: "clamp(8px, 2vw, 10px) clamp(16px, 3vw, 20px)",
+                    fontSize: "clamp(12px, 2.5vw, 14px)",
                     backgroundColor: dateRangeType === "month" ? "#4a9eff" : "#333",
                     color: "#ffffff",
                     border: dateRangeType === "month" ? "2px solid #4a9eff" : "1px solid #555",
                     borderRadius: "4px",
                     cursor: "pointer",
                     fontWeight: dateRangeType === "month" ? "600" : "normal",
+                    whiteSpace: "nowrap",
+                    flex: "1 1 auto",
+                    minWidth: "120px",
                   }}
                   onMouseOver={(e) => {
                     if (dateRangeType !== "month") {
@@ -416,14 +448,17 @@ export default function Home() {
                     setSelectedDate("");
                   }}
                   style={{
-                    padding: "10px 20px",
-                    fontSize: "14px",
+                    padding: "clamp(8px, 2vw, 10px) clamp(16px, 3vw, 20px)",
+                    fontSize: "clamp(12px, 2.5vw, 14px)",
                     backgroundColor: dateRangeType === "custom" ? "#4a9eff" : "#333",
                     color: "#ffffff",
                     border: dateRangeType === "custom" ? "2px solid #4a9eff" : "1px solid #555",
                     borderRadius: "4px",
                     cursor: "pointer",
                     fontWeight: dateRangeType === "custom" ? "600" : "normal",
+                    whiteSpace: "nowrap",
+                    flex: "1 1 auto",
+                    minWidth: "120px",
                   }}
                   onMouseOver={(e) => {
                     if (dateRangeType !== "custom") {

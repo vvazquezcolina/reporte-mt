@@ -32,14 +32,22 @@ export default function RootLayout({
       <body style={{ backgroundColor: "#000000", color: "#ffffff" }}>
         <header style={{ 
           backgroundColor: "#000000", 
-          padding: "20px 0",
+          padding: "clamp(12px, 3vw, 20px) 0",
           borderBottom: "1px solid #333"
         }}>
-          <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 20px" }}>
+          <div style={{ 
+            maxWidth: "1200px", 
+            margin: "0 auto", 
+            padding: "0 clamp(12px, 3vw, 20px)" 
+          }}>
             <img
               src="/images/logo_nuevo_azul.png"
               alt="Mandala Tickets Logo"
-              style={{ height: "60px", width: "auto" }}
+              style={{ 
+                height: "clamp(40px, 8vw, 60px)", 
+                width: "auto",
+                maxWidth: "100%"
+              }}
             />
           </div>
         </header>

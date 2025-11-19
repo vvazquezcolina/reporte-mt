@@ -40,15 +40,36 @@ export default function AdminPage() {
   }
 
   return (
-    <main style={{ minHeight: "100vh", padding: "20px", backgroundColor: "#000000" }}>
+    <main style={{ minHeight: "100vh", padding: "clamp(12px, 3vw, 20px)", backgroundColor: "#000000" }}>
       <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
-          <h1 style={{ fontSize: "32px", color: "#ffffff", margin: 0 }}>
+        <div style={{ 
+          display: "flex", 
+          flexWrap: "wrap",
+          justifyContent: "space-between", 
+          alignItems: "center", 
+          gap: "16px",
+          marginBottom: "clamp(20px, 4vw, 30px)" 
+        }}>
+          <h1 style={{ 
+            fontSize: "clamp(20px, 5vw, 32px)", 
+            color: "#ffffff", 
+            margin: 0,
+            lineHeight: 1.2
+          }}>
             Panel de Administración
           </h1>
-          <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+          <div style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: "12px",
+            flexWrap: "wrap"
+          }}>
             {currentUser && (
-              <span style={{ color: "#cccccc", fontSize: "14px" }}>
+              <span style={{ 
+                color: "#cccccc", 
+                fontSize: "clamp(12px, 2.5vw, 14px)",
+                whiteSpace: "nowrap"
+              }}>
                 Usuario: {currentUser.username}
               </span>
             )}
@@ -56,12 +77,13 @@ export default function AdminPage() {
               onClick={handleBack}
               style={{
                 padding: "8px 16px",
-                fontSize: "14px",
+                fontSize: "clamp(12px, 2.5vw, 14px)",
                 backgroundColor: "#333",
                 color: "#ffffff",
                 border: "1px solid #555",
                 borderRadius: "4px",
                 cursor: "pointer",
+                whiteSpace: "nowrap",
               }}
             >
               Volver
@@ -70,12 +92,13 @@ export default function AdminPage() {
               onClick={handleLogout}
               style={{
                 padding: "8px 16px",
-                fontSize: "14px",
+                fontSize: "clamp(12px, 2.5vw, 14px)",
                 backgroundColor: "#333",
                 color: "#ffffff",
                 border: "1px solid #555",
                 borderRadius: "4px",
                 cursor: "pointer",
+                whiteSpace: "nowrap",
               }}
             >
               Cerrar Sesión
@@ -85,41 +108,61 @@ export default function AdminPage() {
 
         <div style={{
           backgroundColor: "#1a1a1a",
-          padding: "30px",
+          padding: "clamp(20px, 4vw, 30px)",
           borderRadius: "8px",
           border: "1px solid #333",
-          marginBottom: "30px",
+          marginBottom: "clamp(20px, 4vw, 30px)",
         }}>
-          <h2 style={{ fontSize: "20px", fontWeight: "600", marginBottom: "20px", color: "#ffffff" }}>
+          <h2 style={{ 
+            fontSize: "clamp(16px, 4vw, 20px)", 
+            fontWeight: "600", 
+            marginBottom: "clamp(16px, 3vw, 20px)", 
+            color: "#ffffff" 
+          }}>
             Instrucciones para Editar Usuarios
           </h2>
-          <p style={{ color: "#cccccc", marginBottom: "15px", lineHeight: "1.6" }}>
+          <p style={{ 
+            color: "#cccccc", 
+            marginBottom: "15px", 
+            lineHeight: "1.6",
+            fontSize: "clamp(13px, 2.5vw, 14px)"
+          }}>
             Para agregar, modificar o eliminar usuarios, edita manualmente el archivo:
           </p>
           <code style={{
             display: "block",
-            padding: "15px",
+            padding: "clamp(12px, 2vw, 15px)",
             backgroundColor: "#000000",
             borderRadius: "4px",
             color: "#00ff00",
             marginBottom: "15px",
-            fontSize: "14px",
+            fontSize: "clamp(12px, 2.5vw, 14px)",
             border: "1px solid #333",
+            overflowX: "auto",
           }}>
             data/users.ts
           </code>
-          <p style={{ color: "#cccccc", lineHeight: "1.6" }}>
+          <p style={{ 
+            color: "#cccccc", 
+            lineHeight: "1.6",
+            fontSize: "clamp(13px, 2.5vw, 14px)"
+          }}>
             Después de editar el archivo, haz commit y push a tu repositorio. Los cambios se reflejarán después del próximo deploy en Vercel.
           </p>
         </div>
 
         <div style={{
           backgroundColor: "#1a1a1a",
-          padding: "30px",
+          padding: "clamp(20px, 4vw, 30px)",
           borderRadius: "8px",
           border: "1px solid #333",
         }}>
-          <h2 style={{ fontSize: "20px", fontWeight: "600", marginBottom: "20px", color: "#ffffff" }}>
+          <h2 style={{ 
+            fontSize: "clamp(16px, 4vw, 20px)", 
+            fontWeight: "600", 
+            marginBottom: "clamp(16px, 3vw, 20px)", 
+            color: "#ffffff" 
+          }}>
             Usuarios Registrados
           </h2>
           
@@ -137,12 +180,28 @@ export default function AdminPage() {
                     border: "1px solid #333",
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "15px" }}>
+                  <div style={{ 
+                    display: "flex", 
+                    flexWrap: "wrap",
+                    justifyContent: "space-between", 
+                    alignItems: "start", 
+                    gap: "12px",
+                    marginBottom: "15px" 
+                  }}>
                     <div>
-                      <h3 style={{ fontSize: "18px", fontWeight: "600", color: "#ffffff", marginBottom: "5px" }}>
+                      <h3 style={{ 
+                        fontSize: "clamp(16px, 3vw, 18px)", 
+                        fontWeight: "600", 
+                        color: "#ffffff", 
+                        marginBottom: "5px" 
+                      }}>
                         {user.username}
                       </h3>
-                      <p style={{ fontSize: "14px", color: "#999999", margin: 0 }}>
+                      <p style={{ 
+                        fontSize: "clamp(12px, 2.5vw, 14px)", 
+                        color: "#999999", 
+                        margin: 0 
+                      }}>
                         Contraseña: {user.password}
                       </p>
                     </div>
@@ -159,10 +218,20 @@ export default function AdminPage() {
                   </div>
                   
                   <div style={{ marginBottom: "10px" }}>
-                    <strong style={{ color: "#ffffff", fontSize: "14px" }}>Ciudades:</strong>
+                    <strong style={{ 
+                      color: "#ffffff", 
+                      fontSize: "clamp(12px, 2.5vw, 14px)" 
+                    }}>
+                      Ciudades:
+                    </strong>
                     <div style={{ marginTop: "5px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
                       {user.cities.length === 0 ? (
-                        <span style={{ color: "#999999", fontSize: "14px" }}>Ninguna</span>
+                        <span style={{ 
+                          color: "#999999", 
+                          fontSize: "clamp(12px, 2.5vw, 14px)" 
+                        }}>
+                          Ninguna
+                        </span>
                       ) : (
                         user.cities.map((city, cityIndex) => (
                           <span
@@ -172,7 +241,7 @@ export default function AdminPage() {
                               backgroundColor: "#2a2a2a",
                               borderRadius: "4px",
                               color: "#ffffff",
-                              fontSize: "12px",
+                              fontSize: "clamp(11px, 2vw, 12px)",
                             }}
                           >
                             {city}
@@ -183,10 +252,20 @@ export default function AdminPage() {
                   </div>
                   
                   <div>
-                    <strong style={{ color: "#ffffff", fontSize: "14px" }}>Venue IDs:</strong>
+                    <strong style={{ 
+                      color: "#ffffff", 
+                      fontSize: "clamp(12px, 2.5vw, 14px)" 
+                    }}>
+                      Venue IDs:
+                    </strong>
                     <div style={{ marginTop: "5px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
                       {user.venueIds.length === 0 ? (
-                        <span style={{ color: "#999999", fontSize: "14px" }}>Todos los venues</span>
+                        <span style={{ 
+                          color: "#999999", 
+                          fontSize: "clamp(12px, 2.5vw, 14px)" 
+                        }}>
+                          Todos los venues
+                        </span>
                       ) : (
                         user.venueIds.map((venueId, venueIndex) => (
                           <span
@@ -196,7 +275,7 @@ export default function AdminPage() {
                               backgroundColor: "#2a2a2a",
                               borderRadius: "4px",
                               color: "#ffffff",
-                              fontSize: "12px",
+                              fontSize: "clamp(11px, 2vw, 12px)",
                             }}
                           >
                             {venueId}

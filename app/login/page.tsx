@@ -42,20 +42,20 @@ function LoginForm() {
       alignItems: "center", 
       justifyContent: "center",
       backgroundColor: "#000000",
-      padding: "20px"
+      padding: "clamp(16px, 4vw, 20px)"
     }}>
       <div style={{
         backgroundColor: "#1a1a1a",
-        padding: "40px",
+        padding: "clamp(24px, 6vw, 40px)",
         borderRadius: "8px",
         border: "1px solid #333",
         maxWidth: "400px",
         width: "100%"
       }}>
         <h1 style={{
-          fontSize: "24px",
+          fontSize: "clamp(20px, 5vw, 24px)",
           fontWeight: "600",
-          marginBottom: "30px",
+          marginBottom: "clamp(24px, 5vw, 30px)",
           color: "#ffffff",
           textAlign: "center"
         }}>
@@ -69,7 +69,7 @@ function LoginForm() {
               style={{
                 display: "block",
                 marginBottom: "8px",
-                fontSize: "14px",
+                fontSize: "clamp(13px, 2.5vw, 14px)",
                 fontWeight: "500",
                 color: "#ffffff",
               }}
@@ -84,8 +84,8 @@ function LoginForm() {
               required
               style={{
                 width: "100%",
-                padding: "12px",
-                fontSize: "16px",
+                padding: "clamp(10px, 2vw, 12px)",
+                fontSize: "clamp(14px, 3vw, 16px)",
                 border: "1px solid #555",
                 borderRadius: "4px",
                 backgroundColor: "#000000",
@@ -95,13 +95,13 @@ function LoginForm() {
             />
           </div>
 
-          <div style={{ marginBottom: "30px" }}>
+          <div style={{ marginBottom: "clamp(24px, 5vw, 30px)" }}>
             <label
               htmlFor="password"
               style={{
                 display: "block",
                 marginBottom: "8px",
-                fontSize: "14px",
+                fontSize: "clamp(13px, 2.5vw, 14px)",
                 fontWeight: "500",
                 color: "#ffffff",
               }}
@@ -116,8 +116,8 @@ function LoginForm() {
               required
               style={{
                 width: "100%",
-                padding: "12px",
-                fontSize: "16px",
+                padding: "clamp(10px, 2vw, 12px)",
+                fontSize: "clamp(14px, 3vw, 16px)",
                 border: "1px solid #555",
                 borderRadius: "4px",
                 backgroundColor: "#000000",
@@ -148,8 +148,8 @@ function LoginForm() {
             disabled={loading}
             style={{
               width: "100%",
-              padding: "12px",
-              fontSize: "16px",
+              padding: "clamp(10px, 2vw, 12px)",
+              fontSize: "clamp(14px, 3vw, 16px)",
               fontWeight: "600",
               backgroundColor: loading ? "#555" : "#0066cc",
               color: "#ffffff",
