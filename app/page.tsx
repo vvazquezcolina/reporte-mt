@@ -1,0 +1,520 @@
+"use client";
+
+import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { locations } from "@/data/events";
+import { fetchSalesData, SalesData } from "@/lib/api";
+import SalesTable from "@/components/SalesTable";
+import Calendar from "@/components/Calendar";
+import { isAuthenticated, getCurrentUser, userHasVenueAccess, userHasIncomeAccess, logout } from "@/lib/auth";
+import { getCityByVenueId } from "@/data/cities";
+
+type DateRangeType = "day" | "week" | "month" | "custom";
+
+export default function Home() {
+  const router = useRouter();
+  const [selectedLocation, setSelectedLocation] = useState<number | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [dateRangeType, setDateRangeType] = useState<DateRangeType>("day");
+  const [salesData, setSalesData] = useState<SalesData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  // Verificar autenticación al cargar
+  useEffect(() => {
+    const checkAuth = () => {
+      if (!isAuthenticated()) {
+        router.push("/login");
+      } else {
+        const user = getCurrentUser();
+        if (user) {
+          setAuthenticated(true);
+          setCurrentUser(user);
+        } else {
+          router.push("/login");
+        }
+      }
+    };
+    
+    checkAuth();
+  }, [router]);
+
+  // Filtrar locations según permisos del usuario
+  const availableLocations = useMemo(() => {
+    if (!currentUser) return [];
+    return locations.filter((location) => {
+      // Si el usuario tiene acceso a todos los venues (array vacío) o tiene acceso a este venue específico
+      return userHasVenueAccess(location.id);
+    });
+  }, [currentUser]);
+
+  // Agrupar locations por ciudad
+  const locationsByCity = useMemo(() => {
+    const grouped = new Map<string, Array<{ id: number; name: string }>>();
+    
+    availableLocations.forEach((location) => {
+      const city = getCityByVenueId(location.id);
+      if (city) {
+        if (!grouped.has(city)) {
+          grouped.set(city, []);
+        }
+        grouped.get(city)!.push({ id: location.id, name: location.name });
+      }
+    });
+
+    // Ordenar ciudades alfabéticamente
+    const sortedCities = Array.from(grouped.keys()).sort();
+    
+    return sortedCities.map((city) => ({
+      city,
+      locations: grouped.get(city)!.sort((a, b) => a.name.localeCompare(b.name)),
+    }));
+  }, [availableLocations]);
+
+  // Función para obtener la fecha de hoy en formato YYYY-MM-DD
+  const getTodayDate = (): string => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // Función para obtener todas las fechas de la semana actual
+  const getWeekDates = (): string[] => {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = Domingo, 6 = Sábado
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - dayOfWeek); // Ir al domingo
+    
+    const dates: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      dates.push(`${year}-${month}-${day}`);
+    }
+    return dates;
+  };
+
+  // Función para obtener todas las fechas del mes actual
+  const getMonthDates = (): string[] => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    const dates: string[] = [];
+    for (let day = 1; day <= daysInMonth; day++) {
+      const monthStr = String(month + 1).padStart(2, "0");
+      const dayStr = String(day).padStart(2, "0");
+      dates.push(`${year}-${monthStr}-${dayStr}`);
+    }
+    return dates;
+  };
+
+  // Función para cargar datos según el tipo de rango
+  const loadDataByRange = async (rangeType: DateRangeType, customDate?: string, locationId?: number) => {
+    const locationToUse = locationId ?? selectedLocation;
+    
+    if (!locationToUse) {
+      setError("Por favor, selecciona una ubicación primero");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      let dates: string[] = [];
+
+      switch (rangeType) {
+        case "day":
+          dates = [customDate || getTodayDate()];
+          break;
+        case "week":
+          dates = getWeekDates();
+          break;
+        case "month":
+          dates = getMonthDates();
+          break;
+        case "custom":
+          if (customDate) {
+            dates = [customDate];
+          } else {
+            dates = [getTodayDate()];
+          }
+          break;
+      }
+
+      // Cargar datos para todas las fechas
+      const promises = dates.map(async (date) => {
+        const items = await fetchSalesData(date, locationToUse);
+        return {
+          fecha: date,
+          sucursal: locationToUse,
+          items,
+        };
+      });
+
+      const results = await Promise.all(promises);
+      setSalesData(results.sort((a, b) => a.fecha.localeCompare(b.fecha)));
+    } catch (err) {
+      setError("Error al cargar los datos. Por favor, intenta de nuevo.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLocationChange = async (locationId: number) => {
+    setSelectedLocation(locationId);
+    setSalesData([]);
+    setSelectedDate("");
+    setDateRangeType("day");
+    setError(null);
+    
+    // Cargar automáticamente las reservas del día actual
+    // Pasamos locationId directamente para evitar problema de estado asíncrono
+    if (locationId) {
+      await loadDataByRange("day", undefined, locationId);
+    }
+  };
+
+  const handleDateRangeChange = async (rangeType: DateRangeType) => {
+    setDateRangeType(rangeType);
+    setSelectedDate("");
+    await loadDataByRange(rangeType);
+  };
+
+  const handleDateChange = async (date: string) => {
+    setSelectedDate(date);
+    setDateRangeType("custom");
+    await loadDataByRange("custom", date);
+  };
+
+  const selectedLocationData = availableLocations.find(
+    (loc) => loc.id === selectedLocation
+  );
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
+
+  if (!authenticated) {
+    return (
+      <main style={{ minHeight: "100vh", padding: "20px", backgroundColor: "#000000", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ color: "#ffffff", fontSize: "16px" }}>Cargando...</div>
+      </main>
+    );
+  }
+
+  return (
+    <main style={{ minHeight: "100vh", padding: "20px", backgroundColor: "#000000" }}>
+      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
+          <h1 style={{ fontSize: "32px", color: "#ffffff", margin: 0 }}>
+            Reportes de Ventas - Mandala Tickets
+          </h1>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+            {currentUser && (
+              <span style={{ color: "#cccccc", fontSize: "14px" }}>
+                Usuario: {currentUser.username}
+              </span>
+            )}
+            {currentUser && currentUser.username.toLowerCase() === "admin" && (
+              <button
+                onClick={() => router.push("/admin")}
+                style={{
+                  padding: "8px 16px",
+                  fontSize: "14px",
+                  backgroundColor: "#333",
+                  color: "#ffffff",
+                  border: "1px solid #555",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                }}
+              >
+                Administración
+              </button>
+            )}
+            <button
+              onClick={handleLogout}
+              style={{
+                padding: "8px 16px",
+                fontSize: "14px",
+                backgroundColor: "#333",
+                color: "#ffffff",
+                border: "1px solid #555",
+                borderRadius: "4px",
+                cursor: "pointer",
+              }}
+            >
+              Cerrar Sesión
+            </button>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: "30px", display: "flex", flexDirection: "column", gap: "20px" }}>
+          <div>
+            <label
+              htmlFor="location-select"
+              style={{
+                display: "block",
+                marginBottom: "10px",
+                fontSize: "16px",
+                fontWeight: "600",
+                color: "#ffffff",
+              }}
+            >
+              Selecciona una ubicación:
+            </label>
+            <select
+              id="location-select"
+              className="location-select"
+              value={selectedLocation || ""}
+              onChange={(e) => handleLocationChange(Number(e.target.value))}
+              style={{
+                padding: "10px 15px",
+                fontSize: "16px",
+                border: "1px solid #555",
+                borderRadius: "4px",
+                minWidth: "250px",
+                maxWidth: "400px",
+                backgroundColor: "#1a1a1a",
+                color: "#ffffff",
+                cursor: "pointer",
+              }}
+            >
+              <option value="">-- Selecciona una ubicación --</option>
+              {locationsByCity.map(({ city, locations: cityLocations }) => (
+                <optgroup key={city} label={city}>
+                  {cityLocations.map((location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <style jsx>{`
+              .location-select optgroup {
+                background-color: #2a2a2a;
+                color: #ffffff;
+                font-weight: 600;
+                font-size: 14px;
+                padding: 5px;
+              }
+              .location-select option {
+                background-color: #1a1a1a;
+                color: #ffffff;
+                padding: 8px 20px;
+              }
+              .location-select option:checked {
+                background-color: #0066cc;
+              }
+            `}</style>
+          </div>
+
+          {selectedLocation && (
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "10px",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  color: "#ffffff",
+                }}
+              >
+                Selecciona un rango de fechas:
+              </label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "15px" }}>
+                <button
+                  onClick={() => handleDateRangeChange("day")}
+                  style={{
+                    padding: "10px 20px",
+                    fontSize: "14px",
+                    backgroundColor: dateRangeType === "day" ? "#4a9eff" : "#333",
+                    color: "#ffffff",
+                    border: dateRangeType === "day" ? "2px solid #4a9eff" : "1px solid #555",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontWeight: dateRangeType === "day" ? "600" : "normal",
+                  }}
+                  onMouseOver={(e) => {
+                    if (dateRangeType !== "day") {
+                      e.currentTarget.style.backgroundColor = "#444";
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (dateRangeType !== "day") {
+                      e.currentTarget.style.backgroundColor = "#333";
+                    }
+                  }}
+                >
+                  Reservas del día
+                </button>
+                <button
+                  onClick={() => handleDateRangeChange("week")}
+                  style={{
+                    padding: "10px 20px",
+                    fontSize: "14px",
+                    backgroundColor: dateRangeType === "week" ? "#4a9eff" : "#333",
+                    color: "#ffffff",
+                    border: dateRangeType === "week" ? "2px solid #4a9eff" : "1px solid #555",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontWeight: dateRangeType === "week" ? "600" : "normal",
+                  }}
+                  onMouseOver={(e) => {
+                    if (dateRangeType !== "week") {
+                      e.currentTarget.style.backgroundColor = "#444";
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (dateRangeType !== "week") {
+                      e.currentTarget.style.backgroundColor = "#333";
+                    }
+                  }}
+                >
+                  Reservas de la semana
+                </button>
+                <button
+                  onClick={() => handleDateRangeChange("month")}
+                  style={{
+                    padding: "10px 20px",
+                    fontSize: "14px",
+                    backgroundColor: dateRangeType === "month" ? "#4a9eff" : "#333",
+                    color: "#ffffff",
+                    border: dateRangeType === "month" ? "2px solid #4a9eff" : "1px solid #555",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontWeight: dateRangeType === "month" ? "600" : "normal",
+                  }}
+                  onMouseOver={(e) => {
+                    if (dateRangeType !== "month") {
+                      e.currentTarget.style.backgroundColor = "#444";
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (dateRangeType !== "month") {
+                      e.currentTarget.style.backgroundColor = "#333";
+                    }
+                  }}
+                >
+                  Reservas del mes
+                </button>
+                <button
+                  onClick={() => {
+                    setDateRangeType("custom");
+                    setSelectedDate("");
+                  }}
+                  style={{
+                    padding: "10px 20px",
+                    fontSize: "14px",
+                    backgroundColor: dateRangeType === "custom" ? "#4a9eff" : "#333",
+                    color: "#ffffff",
+                    border: dateRangeType === "custom" ? "2px solid #4a9eff" : "1px solid #555",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontWeight: dateRangeType === "custom" ? "600" : "normal",
+                  }}
+                  onMouseOver={(e) => {
+                    if (dateRangeType !== "custom") {
+                      e.currentTarget.style.backgroundColor = "#444";
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (dateRangeType !== "custom") {
+                      e.currentTarget.style.backgroundColor = "#333";
+                    }
+                  }}
+                >
+                  Otro rango personalizado
+                </button>
+              </div>
+              {dateRangeType === "custom" && (
+                <div style={{ marginTop: "10px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "10px",
+                      fontSize: "14px",
+                      fontWeight: "500",
+                      color: "#cccccc",
+                    }}
+                  >
+                    Selecciona una fecha:
+                  </label>
+                  <Calendar
+                    value={selectedDate}
+                    onChange={handleDateChange}
+                    disabled={!selectedLocation}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {loading && (
+          <div
+            style={{
+              padding: "40px",
+              textAlign: "center",
+              fontSize: "18px",
+              color: "#ffffff",
+            }}
+          >
+            Cargando datos...
+          </div>
+        )}
+
+        {error && (
+          <div
+            style={{
+              padding: "20px",
+              backgroundColor: "#330000",
+              border: "1px solid #cc0000",
+              borderRadius: "4px",
+              color: "#ff6666",
+              marginBottom: "20px",
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && selectedLocationData && salesData.length > 0 && (
+          <SalesTable 
+            data={salesData} 
+            locationName={selectedLocationData.name}
+            hasIncomeAccess={userHasIncomeAccess()}
+          />
+        )}
+
+        {!loading && !error && selectedLocation && salesData.length === 0 && (
+          <div
+            style={{
+              padding: "40px",
+              textAlign: "center",
+              fontSize: "16px",
+              color: "#cccccc",
+              backgroundColor: "#1a1a1a",
+              borderRadius: "4px",
+            }}
+          >
+            No hay datos disponibles para la fecha seleccionada.
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
+
