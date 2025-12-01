@@ -139,6 +139,15 @@ export const users: User[] = [
     venueIds: [33], // Mita Sounds Vallarta
     hasIncomeAccess: true,
   },
+  
+  // GEO AGUILAR - Cancún, solo Rakata (ID: 32)
+  {
+    username: "geoaguilar",
+    password: "GeoA2025",
+    cities: [], // No acceso por ciudad, solo por venue específico
+    venueIds: [32], // Solo Rakata de Cancún
+    hasIncomeAccess: true,
+  },
 ];
 
 export function validateUser(username: string, password: string): User | null {
