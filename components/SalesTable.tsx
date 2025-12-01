@@ -100,6 +100,11 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
     // Track unique dates
     monthGroup.uniqueDates.add(salesData.fecha);
     
+    // Debug: Log para Rakata (ID: 32)
+    if (salesData.sucursal === 32) {
+      console.log(`[Rakata Debug] Fecha: ${salesData.fecha}, Items recibidos: ${salesData.items.length}`, salesData.items);
+    }
+    
     if (salesData.items.length === 0) {
         monthGroup.rows.push({
           fecha: formattedDate,
@@ -110,13 +115,37 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
           total: 0,
         });
     } else {
+      // Incluir todos los items que tengan datos relevantes
+      // Mostrar todos los productos que vengan de la API (menos restrictivo)
       const validItems = salesData.items.filter((item) => {
-        const isGeneralAccess = item.producto === "GENERAL ACCESS - Night event";
-        // Usar reservas si está disponible, sino cantidad (compatibilidad hacia atrás)
+        // Excluir solo si no tiene producto definido
+        if (!item.producto || item.producto.trim() === "") {
+          return false;
+        }
+        
+        // Incluir si tiene algún dato: reservas, cantidad, pax, precio o total
         const reservasCount = item.reservas ?? item.cantidad ?? 0;
-        const hasSales = reservasCount > 0 || (item.pax ?? 0) > 0 || item.total > 0;
-        return isGeneralAccess || hasSales;
+        const paxCount = item.pax ?? 0;
+        const totalAmount = item.total ?? 0;
+        const precioAmount = parseFloat(item.precio) || 0;
+        
+        // Incluir si tiene al menos un dato numérico o es GENERAL ACCESS
+        // También incluir si tiene precio aunque otros campos sean 0 (puede ser producto configurado)
+        const isGeneralAccess = item.producto === "GENERAL ACCESS - Night event";
+        const hasAnyData = reservasCount > 0 || paxCount > 0 || totalAmount > 0 || precioAmount > 0;
+        
+        // Debug para Rakata
+        if (salesData.sucursal === 32 && !hasAnyData && !isGeneralAccess) {
+          console.log(`[Rakata Debug] Item filtrado:`, item);
+        }
+        
+        return isGeneralAccess || hasAnyData;
       });
+      
+      // Debug para Rakata: mostrar cuántos items válidos hay
+      if (salesData.sucursal === 32) {
+        console.log(`[Rakata Debug] Fecha: ${salesData.fecha}, Items totales: ${salesData.items.length}, Items válidos: ${validItems.length}`);
+      }
 
       if (validItems.length === 0) {
         monthGroup.rows.push({
