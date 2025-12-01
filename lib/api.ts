@@ -1,5 +1,5 @@
 const API_KEY = "AnXLZrMk8lwuR3tDnrxr5x4c8lqRiWVCz67bwCpk";
-const API_BASE_URL = "https://mandalatickets.com/api/ventas_agrupadas";
+const API_BASE_URL = "https://grupomandala.com.mx/reservaciones/api/ventas_agrupadas";
 
 export interface SaleItem {
   producto: string;

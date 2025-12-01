@@ -6,6 +6,7 @@ export interface User {
   cities: City[];
   venueIds: number[];
   hasIncomeAccess: boolean;
+  allowedDates?: string[]; // Fechas permitidas en formato YYYY-MM-DD (opcional)
 }
 
 export const users: User[] = [
@@ -140,13 +141,19 @@ export const users: User[] = [
     hasIncomeAccess: true,
   },
   
-  // GEO AGUILAR - Cancún, solo Rakata (ID: 32)
+  // GEO AGUILAR - Cancún, solo Rakata (ID: 32), solo fechas específicas de 2025
   {
     username: "geoaguilar",
     password: "GeoA2025",
     cities: [], // No acceso por ciudad, solo por venue específico
     venueIds: [32], // Solo Rakata de Cancún
     hasIncomeAccess: true,
+    allowedDates: [
+      "2025-10-31",
+      "2025-11-01",
+      "2025-12-19",
+      "2025-12-31"
+    ], // Solo puede acceder a estas fechas específicas de 2025
   },
 ];
 

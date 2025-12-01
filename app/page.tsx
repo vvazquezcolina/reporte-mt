@@ -6,7 +6,7 @@ import { locations } from "@/data/events";
 import { fetchSalesData, SalesData } from "@/lib/api";
 import SalesTable from "@/components/SalesTable";
 import Calendar from "@/components/Calendar";
-import { isAuthenticated, getCurrentUser, userHasVenueAccess, userHasIncomeAccess, logout } from "@/lib/auth";
+import { isAuthenticated, getCurrentUser, userHasVenueAccess, userHasIncomeAccess, userCanAccessDate, getUserAllowedDates, hasDateRestrictions, logout } from "@/lib/auth";
 import { getCityByVenueId } from "@/data/cities";
 
 type DateRangeType = "day" | "week" | "month" | "custom";
@@ -186,8 +186,28 @@ export default function Home() {
           break;
       }
 
-      // Cargar datos para todas las fechas
-      const promises = dates.map(async (date) => {
+      // Filtrar fechas permitidas según restricciones del usuario
+      const allowedDates = dates.filter(date => userCanAccessDate(date));
+      const blockedDates = dates.filter(date => !userCanAccessDate(date));
+
+      // Si hay fechas bloqueadas, mostrar advertencia
+      if (blockedDates.length > 0) {
+        const blockedDatesFormatted = blockedDates.map(date => {
+          const d = new Date(date + "T00:00:00");
+          return d.toLocaleDateString("es-MX", { day: "numeric", month: "long" });
+        }).join(", ");
+        setError(`No tienes acceso a las siguientes fechas: ${blockedDatesFormatted}. Solo puedes acceder a las fechas permitidas para tu usuario.`);
+      }
+
+      // Si no hay fechas permitidas, no cargar nada
+      if (allowedDates.length === 0) {
+        setError("No tienes acceso a ninguna de las fechas seleccionadas.");
+        setLoading(false);
+        return;
+      }
+
+      // Cargar datos solo para las fechas permitidas
+      const promises = allowedDates.map(async (date) => {
         const items = await fetchSalesData(date, locationToUse);
         return {
           fecha: date,
@@ -215,7 +235,34 @@ export default function Home() {
     setDateRangeType("day");
     setError(null);
     
-    // Cargar automáticamente las reservas del día actual
+    // Si el usuario tiene restricciones de fechas, cargar todas las fechas permitidas
+    if (locationId && hasDateRestrictions()) {
+      const allowedDates = getUserAllowedDates();
+      if (allowedDates.length > 0) {
+        setLoading(true);
+        setError(null);
+        try {
+          const promises = allowedDates.map(async (date) => {
+            const items = await fetchSalesData(date, locationId);
+            return {
+              fecha: date,
+              sucursal: locationId,
+              items,
+            };
+          });
+          const results = await Promise.all(promises);
+          setSalesData(results.sort((a, b) => a.fecha.localeCompare(b.fecha)));
+        } catch (err) {
+          setError("Error al cargar los datos. Por favor, intenta de nuevo.");
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+    }
+    
+    // Cargar automáticamente las reservas del día actual (si no tiene restricciones)
     // Pasamos locationId directamente para evitar problema de estado asíncrono
     if (locationId) {
       await loadDataByRange("day", undefined, locationId);
@@ -400,18 +447,79 @@ export default function Home() {
 
           {selectedLocation && (
             <div>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "10px",
-                  fontSize: "clamp(14px, 3vw, 16px)",
-                  fontWeight: "600",
-                  color: "#ffffff",
-                }}
-              >
-                Selecciona un rango de fechas:
-              </label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "15px" }}>
+              {hasDateRestrictions() ? (
+                // Usuario con restricciones de fechas: mostrar solo fechas permitidas
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "10px",
+                      fontSize: "clamp(14px, 3vw, 16px)",
+                      fontWeight: "600",
+                      color: "#ffffff",
+                    }}
+                  >
+                    Fechas disponibles:
+                  </label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: "15px" }}>
+                    {getUserAllowedDates()
+                      .sort((a, b) => a.localeCompare(b))
+                      .map((date) => {
+                        const dateObj = new Date(date + "T00:00:00");
+                        const formattedDate = dateObj.toLocaleDateString("es-MX", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        });
+                        return (
+                          <div
+                            key={date}
+                            style={{
+                              padding: "clamp(12px, 2vw, 16px) clamp(20px, 3vw, 24px)",
+                              backgroundColor: "#2a2a2a",
+                              border: "1px solid #555",
+                              borderRadius: "8px",
+                              color: "#ffffff",
+                              fontSize: "clamp(14px, 2.5vw, 16px)",
+                              fontWeight: "500",
+                              minWidth: "140px",
+                              textAlign: "center",
+                            }}
+                          >
+                            {formattedDate}
+                          </div>
+                        );
+                      })}
+                  </div>
+                  <div
+                    style={{
+                      padding: "12px",
+                      backgroundColor: "#1a3a1a",
+                      border: "1px solid #2a5a2a",
+                      borderRadius: "4px",
+                      marginBottom: "15px",
+                      fontSize: "clamp(12px, 2.5vw, 14px)",
+                      color: "#90ee90",
+                    }}
+                  >
+                    ℹ️ Solo tienes acceso a estas fechas. Los datos se cargarán automáticamente.
+                  </div>
+                </div>
+              ) : (
+                // Usuario sin restricciones: mostrar selectores normales
+                <>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "10px",
+                      fontSize: "clamp(14px, 3vw, 16px)",
+                      fontWeight: "600",
+                      color: "#ffffff",
+                    }}
+                  >
+                    Selecciona un rango de fechas:
+                  </label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "15px" }}>
                 <button
                   onClick={() => handleDateRangeChange("day")}
                   style={{
@@ -660,6 +768,8 @@ export default function Home() {
                   `}</style>
                 </div>
               )}
+                </>
+              )}
             </div>
           )}
         </div>
@@ -667,13 +777,33 @@ export default function Home() {
         {loading && (
           <div
             style={{
-              padding: "40px",
+              padding: "60px 40px",
               textAlign: "center",
-              fontSize: "18px",
+              fontSize: "clamp(18px, 2.5vw, 24px)",
               color: "#ffffff",
+              backgroundColor: "#1a1a1a",
+              borderRadius: "8px",
+              border: "1px solid #333",
+              margin: "20px 0",
             }}
           >
-            Cargando datos...
+            <div style={{
+              display: "inline-block",
+              width: "40px",
+              height: "40px",
+              border: "4px solid #333",
+              borderTop: "4px solid #ffffff",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+              marginBottom: "20px",
+            }}></div>
+            <div style={{ marginTop: "10px" }}>Cargando información...</div>
+            <style jsx>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
           </div>
         )}
 

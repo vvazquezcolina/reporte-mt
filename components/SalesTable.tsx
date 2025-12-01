@@ -29,6 +29,69 @@ interface MonthGroup {
   uniqueDatesCount: number;
 }
 
+// Función para limpiar nombres de productos
+function cleanProductName(name: string): string {
+  if (!name) return "COVER";
+  
+  let cleaned = name.trim();
+  
+  // Eliminar información de precio entre paréntesis: (23,000.00) o ($23,000.00)
+  cleaned = cleaned.replace(/\s*\([^)]*\)\s*/g, "");
+  
+  // Eliminar espacios múltiples y reemplazar por uno solo
+  cleaned = cleaned.replace(/\s+/g, " ");
+  
+  // Eliminar "N/A" al final o en cualquier parte del nombre
+  cleaned = cleaned.replace(/\s*N\/A\s*/gi, " ").trim();
+  
+  // Detectar y eliminar repeticiones del nombre
+  // Caso 1: Repetición exacta separada por espacios (ej: "DINNER TICKET  DINNER TICKET")
+  const words = cleaned.split(/\s+/);
+  if (words.length >= 4) {
+    // Buscar si la primera mitad se repite en la segunda mitad
+    const midPoint = Math.floor(words.length / 2);
+    const firstHalf = words.slice(0, midPoint);
+    const secondHalf = words.slice(midPoint);
+    
+    // Verificar si la segunda mitad comienza igual que la primera
+    if (firstHalf.length > 0 && secondHalf.length >= firstHalf.length) {
+      const firstHalfStr = firstHalf.join(" ").toLowerCase();
+      const secondHalfStart = secondHalf.slice(0, firstHalf.length).join(" ").toLowerCase();
+      
+      // Si coinciden exactamente o casi exactamente, eliminar la repetición
+      if (firstHalfStr === secondHalfStart || 
+          (firstHalfStr.length > 10 && secondHalfStart.startsWith(firstHalfStr.substring(0, Math.min(15, firstHalfStr.length))))) {
+        cleaned = firstHalf.join(" ");
+      }
+    }
+  }
+  
+  // Caso 2: Nombres truncados que se repiten (ej: "NYE Dinner Table Experience  NYE Dinner Table Expe")
+  // Buscar patrones donde hay una palabra o frase que se repite al final truncada
+  const cleanedWords = cleaned.split(/\s+/);
+  if (cleanedWords.length > 5) {
+    // Buscar si las últimas palabras son similares a las primeras
+    const startWords = cleanedWords.slice(0, 3).join(" ").toLowerCase();
+    const endWords = cleanedWords.slice(-3).join(" ").toLowerCase();
+    
+    if (startWords.length > 0 && endWords.length > 0) {
+      // Si las últimas palabras empiezan igual que las primeras, puede ser una repetición truncada
+      if (endWords.startsWith(startWords.substring(0, Math.min(10, startWords.length)))) {
+        // Tomar solo la primera parte completa
+        const firstCompletePart = cleanedWords.slice(0, Math.floor(cleanedWords.length * 0.6)).join(" ");
+        if (firstCompletePart.length > 10) {
+          cleaned = firstCompletePart;
+        }
+      }
+    }
+  }
+  
+  // Limpiar espacios al inicio y final nuevamente
+  cleaned = cleaned.trim();
+  
+  return cleaned || "COVER";
+}
+
 export default function SalesTable({ data, locationName, hasIncomeAccess }: SalesTableProps) {
   // Si no tiene acceso a ingresos, mostrar mensaje
   if (!hasIncomeAccess) {
@@ -71,9 +134,14 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
   // Determinar si es EUR (Europa) o MXN (México y resto)
   const isEUR = venueCity === "Madrid";
 
-  // Transform data into table rows and group by month
+  // Transform data into table rows and group by month and date
   const sortedMonthGroups = useMemo(() => {
-    const monthGroups = new Map<string, { monthKey: string; monthLabel: string; rows: TableRow[]; uniqueDates: Set<string> }>();
+    const monthGroups = new Map<string, { 
+      monthKey: string; 
+      monthLabel: string; 
+      dateGroups: Map<string, { fecha: string; rows: TableRow[]; totals: { reservas: number; personas: number; total: number } }>; 
+      uniqueDates: Set<string> 
+    }>();
   
     data.forEach((salesData) => {
     const date = new Date(salesData.fecha + "T00:00:00");
@@ -90,7 +158,7 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
       monthGroups.set(monthKey, {
         monthKey,
         monthLabel,
-        rows: [],
+        dateGroups: new Map(),
         uniqueDates: new Set<string>(),
       });
     }
@@ -100,20 +168,32 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
     // Track unique dates
     monthGroup.uniqueDates.add(salesData.fecha);
     
+    // Get or create date group
+    if (!monthGroup.dateGroups.has(salesData.fecha)) {
+      monthGroup.dateGroups.set(salesData.fecha, {
+        fecha: formattedDate,
+        rows: [],
+        totals: { reservas: 0, personas: 0, total: 0 },
+      });
+    }
+    
+    const dateGroup = monthGroup.dateGroups.get(salesData.fecha)!;
+    
     // Debug: Log para Rakata (ID: 32)
     if (salesData.sucursal === 32) {
       console.log(`[Rakata Debug] Fecha: ${salesData.fecha}, Items recibidos: ${salesData.items.length}`, salesData.items);
     }
     
     if (salesData.items.length === 0) {
-        monthGroup.rows.push({
+        const coverRow = {
           fecha: formattedDate,
           producto: "COVER",
           precio: isEUR ? "€0,00" : "$0.00",
           reservas: 0,
           personas: 0,
           total: 0,
-        });
+        };
+        dateGroup.rows.push(coverRow);
     } else {
       // Incluir todos los items que tengan datos relevantes
       // Mostrar todos los productos que vengan de la API (menos restrictivo)
@@ -148,14 +228,15 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
       }
 
       if (validItems.length === 0) {
-        monthGroup.rows.push({
+        const coverRow = {
           fecha: formattedDate,
           producto: "COVER",
           precio: isEUR ? "€0,00" : "$0.00",
           reservas: 0,
           personas: 0,
           total: 0,
-        });
+        };
+        dateGroup.rows.push(coverRow);
       } else {
         validItems.forEach((item) => {
           // Usar reservas y pax directamente de la API, con fallback a cantidad y cálculo si no existen
@@ -173,14 +254,21 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
             }
           }
           
-          monthGroup.rows.push({
+          const row = {
             fecha: formattedDate,
-            producto: item.producto || "COVER",
+            producto: cleanProductName(item.producto || "COVER"),
             precio: formatPrice(item.precio, isEUR),
             reservas: reservas,
             personas: personas,
             total: item.total,
-          });
+          };
+          
+          dateGroup.rows.push(row);
+          
+          // Acumular totales por fecha
+          dateGroup.totals.reservas += reservas;
+          dateGroup.totals.personas += personas;
+          dateGroup.totals.total += item.total;
         });
       }
     }
@@ -188,10 +276,26 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
 
     // Convert to array and sort by month key
     return Array.from(monthGroups.values())
-      .map(monthGroup => ({
-        ...monthGroup,
-        uniqueDatesCount: monthGroup.uniqueDates.size,
-      }))
+      .map(monthGroup => {
+        // Convert date groups to sorted array
+        const sortedDateGroups = Array.from(monthGroup.dateGroups.values())
+          .sort((a, b) => a.fecha.localeCompare(b.fecha))
+          .map(dateGroup => ({
+            ...dateGroup,
+            // Ordenar las filas alfabéticamente por nombre de producto dentro de cada fecha
+            rows: dateGroup.rows.sort((a, b) => {
+              const productA = a.producto.toLowerCase();
+              const productB = b.producto.toLowerCase();
+              return productA.localeCompare(productB, 'es', { sensitivity: 'base' });
+            }),
+          }));
+        
+        return {
+          ...monthGroup,
+          uniqueDatesCount: monthGroup.uniqueDates.size,
+          dateGroups: sortedDateGroups,
+        };
+      })
       .sort((a, b) => a.monthKey.localeCompare(b.monthKey));
   }, [data, isEUR]);
 
@@ -202,10 +306,10 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
     let totalIngresos = 0;
 
     sortedMonthGroups.forEach((monthGroup) => {
-      monthGroup.rows.forEach((row) => {
-        totalReservas += row.reservas;
-        totalPersonas += row.personas;
-        totalIngresos += row.total;
+      monthGroup.dateGroups.forEach((dateGroup) => {
+        totalReservas += dateGroup.totals.reservas;
+        totalPersonas += dateGroup.totals.personas;
+        totalIngresos += dateGroup.totals.total;
       });
     });
 
@@ -288,16 +392,31 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
         monthRowIndices.push(currentRowIndex);
         currentRowIndex++;
         
-        // Agregar filas del mes
-        monthGroup.rows.forEach((row) => {
+        // Agregar filas del mes agrupadas por fecha
+        monthGroup.dateGroups.forEach((dateGroup) => {
+          // Agregar filas de productos de esta fecha
+          dateGroup.rows.forEach((row) => {
+            tableData.push([
+              row.fecha,
+              row.producto || "-",
+              row.precio,
+              formatNumber(row.reservas, isEUR),
+              formatNumber(row.personas, isEUR),
+              formatCurrency(row.total, isEUR)
+            ]);
+            currentRowIndex++;
+          });
+          
+          // Agregar fila de total por fecha
           tableData.push([
-            row.fecha,
-            row.producto || "-",
-            row.precio,
-            formatNumber(row.reservas, isEUR),
-            formatNumber(row.personas, isEUR),
-            formatCurrency(row.total, isEUR)
+            `Total ${dateGroup.fecha}`,
+            "",
+            "",
+            formatNumber(dateGroup.totals.reservas, isEUR),
+            formatNumber(dateGroup.totals.personas, isEUR),
+            formatCurrency(dateGroup.totals.total, isEUR)
           ]);
+          monthRowIndices.push(currentRowIndex); // Marcar como fila especial para estilos
           currentRowIndex++;
         });
       });
@@ -444,18 +563,38 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
                 <tr className="month-header">
                   <td colSpan={6} className="month-header-cell">
                     <span className="month-label">{monthGroup.monthLabel}</span>
-                    <span className="month-count">({monthGroup.uniqueDatesCount || monthGroup.rows.length} fechas)</span>
+                    <span className="month-count">({monthGroup.uniqueDatesCount} fechas)</span>
                   </td>
                 </tr>
-                {monthGroup.rows.map((row, index) => (
-                  <tr key={`${monthGroup.monthKey}-${index}`}>
-                    <td className="fecha-cell">{row.fecha}</td>
-                    <td>{row.producto || "-"}</td>
-                    <td className="number-cell">{row.precio}</td>
-                    <td className="number-cell">{formatNumber(row.reservas, isEUR)}</td>
-                    <td className="number-cell">{formatNumber(row.personas, isEUR)}</td>
-                    <td className="number-cell">{formatCurrency(row.total, isEUR)}</td>
-                  </tr>
+                {monthGroup.dateGroups.map((dateGroup, dateIndex) => (
+                  <React.Fragment key={`${monthGroup.monthKey}-${dateGroup.fecha}`}>
+                    {dateGroup.rows.map((row, rowIndex) => (
+                      <tr key={`${monthGroup.monthKey}-${dateGroup.fecha}-${rowIndex}`}>
+                        <td className="fecha-cell">{row.fecha}</td>
+                        <td>{row.producto || "-"}</td>
+                        <td className="number-cell">{row.precio}</td>
+                        <td className="number-cell">{formatNumber(row.reservas, isEUR)}</td>
+                        <td className="number-cell">{formatNumber(row.personas, isEUR)}</td>
+                        <td className="number-cell">{formatCurrency(row.total, isEUR)}</td>
+                      </tr>
+                    ))}
+                    {/* Total por fecha */}
+                    <tr className="date-total-row">
+                      <td colSpan={2} className="date-total-label-cell">
+                        <strong>Total {dateGroup.fecha}</strong>
+                      </td>
+                      <td className="number-cell"></td>
+                      <td className="number-cell date-total-value">
+                        <strong>{formatNumber(dateGroup.totals.reservas, isEUR)}</strong>
+                      </td>
+                      <td className="number-cell date-total-value">
+                        <strong>{formatNumber(dateGroup.totals.personas, isEUR)}</strong>
+                      </td>
+                      <td className="number-cell date-total-value">
+                        <strong>{formatCurrency(dateGroup.totals.total, isEUR)}</strong>
+                      </td>
+                    </tr>
+                  </React.Fragment>
                 ))}
               </React.Fragment>
             );
@@ -562,6 +701,24 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
           font-weight: 400;
           color: #cccccc;
           font-size: 13px;
+        }
+        .date-total-row {
+          background-color: #2a2a2a;
+          border-top: 1px solid #555;
+        }
+        .date-total-row:hover {
+          background-color: #2a2a2a;
+        }
+        .date-total-label-cell {
+          text-align: right;
+          padding: clamp(10px, 2vw, 12px) clamp(8px, 2vw, 12px);
+          font-weight: 600;
+          color: #ffffff;
+          font-size: clamp(13px, 2.5vw, 14px);
+        }
+        .date-total-value {
+          font-weight: 600;
+          color: #ffffff;
         }
         .total-row {
           background-color: #1a1a1a;

@@ -92,6 +92,39 @@ export function userHasIncomeAccess(): boolean {
   return checkIncomeAccess(user);
 }
 
+export function userCanAccessDate(date: string): boolean {
+  const user = getCurrentUser();
+  if (!user) {
+    return false;
+  }
+  
+  // Si el usuario no tiene restricción de fechas, puede acceder a cualquier fecha
+  if (!user.allowedDates || user.allowedDates.length === 0) {
+    return true;
+  }
+  
+  // Verificar si la fecha está en la lista de fechas permitidas
+  return user.allowedDates.includes(date);
+}
+
+export function getUserAllowedDates(): string[] {
+  const user = getCurrentUser();
+  if (!user || !user.allowedDates || user.allowedDates.length === 0) {
+    return []; // Sin restricciones = array vacío
+  }
+  
+  return user.allowedDates;
+}
+
+export function hasDateRestrictions(): boolean {
+  const user = getCurrentUser();
+  if (!user) {
+    return false;
+  }
+  
+  return !!(user.allowedDates && user.allowedDates.length > 0);
+}
+
 export function logout(): void {
   if (typeof window !== "undefined") {
     localStorage.removeItem(STORAGE_KEY);
