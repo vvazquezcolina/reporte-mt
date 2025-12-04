@@ -155,6 +155,32 @@ export const users: User[] = [
       "2025-12-31"
     ], // Solo puede acceder a estas fechas específicas de 2025
   },
+  
+  // ALMF - Tulum, solo Bagatelle Tulum (ID: 41), solo fechas específicas de 2026
+  {
+    username: "almf",
+    password: "BagatelleMG2025",
+    cities: [], // No acceso por ciudad, solo por venue específico
+    venueIds: [41], // Solo Bagatelle Tulum
+    hasIncomeAccess: true,
+    allowedDates: [
+      "2026-01-02",
+      "2026-01-07"
+    ], // Solo puede acceder a estas fechas específicas de 2026
+  },
+  
+  // LUIS CRUZ - Tulum, solo Bagatelle Tulum (ID: 41), solo fechas específicas de 2026
+  {
+    username: "luis cruz",
+    password: "BagatelleMG2025",
+    cities: [], // No acceso por ciudad, solo por venue específico
+    venueIds: [41], // Solo Bagatelle Tulum
+    hasIncomeAccess: true,
+    allowedDates: [
+      "2026-01-02",
+      "2026-01-07"
+    ], // Solo puede acceder a estas fechas específicas de 2026
+  },
 ];
 
 export function validateUser(username: string, password: string): User | null {
