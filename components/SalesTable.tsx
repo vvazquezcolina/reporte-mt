@@ -203,6 +203,16 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
           return false;
         }
         
+        // Filtro especial para Bagatelle Tulum (ID: 41): excluir productos "CONSUMO" con precio = 0
+        if (salesData.sucursal === 41) {
+          const productoName = item.producto.trim().toUpperCase();
+          const precioAmount = parseFloat(item.precio) || 0;
+          
+          if (productoName === "CONSUMO" && precioAmount === 0) {
+            return false;
+          }
+        }
+        
         // Incluir si tiene algún dato: reservas, cantidad, pax, precio o total
         const reservasCount = item.reservas ?? item.cantidad ?? 0;
         const paxCount = item.pax ?? 0;
