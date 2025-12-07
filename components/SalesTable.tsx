@@ -92,6 +92,162 @@ function cleanProductName(name: string): string {
   return cleaned || "COVER";
 }
 
+// Función para renombrar GENERAL ACCESS para Vagalume Tulum según precio
+function renameGeneralAccessForVagalume(items: SaleItem[], sucursal: number): SaleItem[] {
+  // Solo aplicar a Vagalume Tulum (ID: 38)
+  if (sucursal !== 38) {
+    return items;
+  }
+
+  // Separar items GENERAL ACCESS y NYE de los demás
+  const generalAccessItems: SaleItem[] = [];
+  const nyeItems: SaleItem[] = [];
+  const otherItems: SaleItem[] = [];
+
+  items.forEach((item) => {
+    const productoName = item.producto?.toUpperCase() || "";
+    const isNYE = productoName.includes("NYE");
+    const isGeneralAccess = productoName.includes("GENERAL ACCESS");
+    const isGeneralAdmission = productoName.includes("GENERAL ADMISSION");
+    
+    if (isNYE && (isGeneralAccess || isGeneralAdmission)) {
+      nyeItems.push(item);
+    } else if (isGeneralAccess) {
+      generalAccessItems.push(item);
+    } else {
+      otherItems.push(item);
+    }
+  });
+
+  // Si no hay items GENERAL ACCESS ni NYE, retornar sin cambios
+  if (generalAccessItems.length === 0 && nyeItems.length === 0) {
+    return items;
+  }
+
+  // Procesar items GENERAL ACCESS normales
+  let processedGAItems: SaleItem[] = [];
+  if (generalAccessItems.length > 0) {
+    const uniquePrices = Array.from(
+      new Set(generalAccessItems.map(item => parseFloat(item.precio) || 0))
+    ).sort((a, b) => a - b);
+
+    const priceToNameMap = new Map<number, string>();
+    uniquePrices.forEach((price, index) => {
+      if (index === 0) {
+        priceToNameMap.set(price, "GA - Early Bird");
+      } else if (index === 1) {
+        priceToNameMap.set(price, "GA - First Release");
+      } else if (index === 2) {
+        priceToNameMap.set(price, "GA - Second Release");
+      } else {
+        priceToNameMap.set(price, "GA - Last Release");
+      }
+    });
+
+    const renamedGAItems = generalAccessItems.map((item) => {
+      const precio = parseFloat(item.precio) || 0;
+      const newName = priceToNameMap.get(precio) || item.producto;
+      return { ...item, producto: newName };
+    });
+
+    // Agrupar items GENERAL ACCESS con mismo nombre y precio
+    const groupedGAItems = new Map<string, SaleItem>();
+    renamedGAItems.forEach((item) => {
+      const precio = parseFloat(item.precio) || 0;
+      const newName = priceToNameMap.get(precio) || item.producto;
+      const key = `${newName}_${precio}`;
+      
+      if (groupedGAItems.has(key)) {
+        const existing = groupedGAItems.get(key)!;
+        const reservas = (existing.reservas ?? existing.cantidad ?? 0) + (item.reservas ?? item.cantidad ?? 0);
+        const pax = (existing.pax ?? 0) + (item.pax ?? 0);
+        const total = (existing.total ?? 0) + (item.total ?? 0);
+        
+        groupedGAItems.set(key, {
+          ...existing,
+          reservas,
+          pax,
+          total,
+          cantidad: reservas,
+        });
+      } else {
+        groupedGAItems.set(key, {
+          ...item,
+          producto: newName,
+          reservas: item.reservas ?? item.cantidad ?? 0,
+          pax: item.pax ?? 0,
+          total: item.total ?? 0,
+          cantidad: item.reservas ?? item.cantidad ?? 0,
+        });
+      }
+    });
+    processedGAItems = Array.from(groupedGAItems.values());
+  }
+
+  // Procesar items NYE
+  let processedNYEItems: SaleItem[] = [];
+  if (nyeItems.length > 0) {
+    const uniquePrices = Array.from(
+      new Set(nyeItems.map(item => parseFloat(item.precio) || 0))
+    ).sort((a, b) => a - b);
+
+    const priceToNameMap = new Map<number, string>();
+    uniquePrices.forEach((price, index) => {
+      if (index === 0) {
+        priceToNameMap.set(price, "NYE - GA - Early Bird");
+      } else if (index === 1) {
+        priceToNameMap.set(price, "NYE - GA - First Release");
+      } else if (index === 2) {
+        priceToNameMap.set(price, "NYE - GA - Second Release");
+      } else {
+        priceToNameMap.set(price, "NYE - GA - Final Release");
+      }
+    });
+
+    const renamedNYEItems = nyeItems.map((item) => {
+      const precio = parseFloat(item.precio) || 0;
+      const newName = priceToNameMap.get(precio) || item.producto;
+      return { ...item, producto: newName };
+    });
+
+    // Agrupar items NYE con mismo nombre y precio
+    const groupedNYEItems = new Map<string, SaleItem>();
+    renamedNYEItems.forEach((item) => {
+      const precio = parseFloat(item.precio) || 0;
+      const newName = priceToNameMap.get(precio) || item.producto;
+      const key = `${newName}_${precio}`;
+      
+      if (groupedNYEItems.has(key)) {
+        const existing = groupedNYEItems.get(key)!;
+        const reservas = (existing.reservas ?? existing.cantidad ?? 0) + (item.reservas ?? item.cantidad ?? 0);
+        const pax = (existing.pax ?? 0) + (item.pax ?? 0);
+        const total = (existing.total ?? 0) + (item.total ?? 0);
+        
+        groupedNYEItems.set(key, {
+          ...existing,
+          reservas,
+          pax,
+          total,
+          cantidad: reservas,
+        });
+      } else {
+        groupedNYEItems.set(key, {
+          ...item,
+          producto: newName,
+          reservas: item.reservas ?? item.cantidad ?? 0,
+          pax: item.pax ?? 0,
+          total: item.total ?? 0,
+          cantidad: item.reservas ?? item.cantidad ?? 0,
+        });
+      }
+    });
+    processedNYEItems = Array.from(groupedNYEItems.values());
+  }
+
+  // Combinar todos los items procesados con los demás
+  return [...processedGAItems, ...processedNYEItems, ...otherItems];
+}
+
 export default function SalesTable({ data, locationName, hasIncomeAccess }: SalesTableProps) {
   // Si no tiene acceso a ingresos, mostrar mensaje
   if (!hasIncomeAccess) {
@@ -237,7 +393,10 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
         console.log(`[Rakata Debug] Fecha: ${salesData.fecha}, Items totales: ${salesData.items.length}, Items válidos: ${validItems.length}`);
       }
 
-      if (validItems.length === 0) {
+      // Renombrar GENERAL ACCESS para Vagalume Tulum según precio
+      const processedItems = renameGeneralAccessForVagalume(validItems, salesData.sucursal);
+
+      if (processedItems.length === 0) {
         const coverRow = {
           fecha: formattedDate,
           producto: "COVER",
@@ -248,7 +407,7 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
         };
         dateGroup.rows.push(coverRow);
       } else {
-        validItems.forEach((item) => {
+        processedItems.forEach((item) => {
           // Usar reservas y pax directamente de la API, con fallback a cantidad y cálculo si no existen
           let reservas = item.reservas ?? item.cantidad ?? 0;
           let personas = item.pax ?? 0;
