@@ -178,8 +178,11 @@ export default function Home() {
           } else if (customDate) {
             dates = [customDate];
           } else {
-            dates = [];
-            setError("Por favor, selecciona un rango de fechas");
+            // No mostrar error si estamos en proceso de establecer fechas
+            // El useEffect se ejecutará de nuevo cuando las fechas estén listas
+            if (dateRangeType === "custom" && !customStartDate && !customEndDate) {
+              setError("Por favor, selecciona un rango de fechas");
+            }
             setLoading(false);
             return;
           }
@@ -290,9 +293,13 @@ export default function Home() {
     if (dateRangeType === "custom" && customStartDate && customEndDate && selectedLocation) {
       if (customStartDate <= customEndDate) {
         setError(null);
-        loadDataByRange("custom").catch((err) => {
-          console.error("Error loading custom range:", err);
-        });
+        // Usar un pequeño delay para asegurar que el estado esté completamente actualizado
+        const timer = setTimeout(() => {
+          loadDataByRange("custom").catch((err) => {
+            console.error("Error loading custom range:", err);
+          });
+        }, 0);
+        return () => clearTimeout(timer);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -607,16 +614,13 @@ export default function Home() {
                 <button
                   onClick={() => {
                     const nyeDate = "2025-12-31";
+                    setSelectedDate("");
+                    setError(null);
                     setDateRangeType("custom");
+                    // Establecer las fechas de forma que el useEffect las detecte
                     setCustomStartDate(nyeDate);
                     setCustomEndDate(nyeDate);
-                    setSelectedDate("");
-                    // Cargar datos automáticamente si hay una ubicación seleccionada
-                    if (selectedLocation) {
-                      setTimeout(() => {
-                        loadDataByRange("custom", undefined, selectedLocation);
-                      }, 100);
-                    }
+                    // El useEffect se encargará de cargar los datos cuando detecte el cambio
                   }}
                   style={{
                     padding: "clamp(8px, 2vw, 10px) clamp(16px, 3vw, 20px)",
