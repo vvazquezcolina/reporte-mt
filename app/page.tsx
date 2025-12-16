@@ -606,29 +606,69 @@ export default function Home() {
                 </button>
                 <button
                   onClick={() => {
+                    const nyeDate = "2025-12-31";
+                    setDateRangeType("custom");
+                    setCustomStartDate(nyeDate);
+                    setCustomEndDate(nyeDate);
+                    setSelectedDate("");
+                    // Cargar datos automáticamente si hay una ubicación seleccionada
+                    if (selectedLocation) {
+                      setTimeout(() => {
+                        loadDataByRange("custom", undefined, selectedLocation);
+                      }, 100);
+                    }
+                  }}
+                  style={{
+                    padding: "clamp(8px, 2vw, 10px) clamp(16px, 3vw, 20px)",
+                    fontSize: "clamp(12px, 2.5vw, 14px)",
+                    backgroundColor: dateRangeType === "custom" && customStartDate === "2025-12-31" && customEndDate === "2025-12-31" ? "#d4af37" : "#333",
+                    color: "#ffffff",
+                    border: dateRangeType === "custom" && customStartDate === "2025-12-31" && customEndDate === "2025-12-31" ? "2px solid #d4af37" : "1px solid #555",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    fontWeight: dateRangeType === "custom" && customStartDate === "2025-12-31" && customEndDate === "2025-12-31" ? "600" : "normal",
+                    whiteSpace: "nowrap",
+                    flex: "1 1 auto",
+                    minWidth: "120px",
+                  }}
+                  onMouseOver={(e) => {
+                    if (!(dateRangeType === "custom" && customStartDate === "2025-12-31" && customEndDate === "2025-12-31")) {
+                      e.currentTarget.style.backgroundColor = "#444";
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (!(dateRangeType === "custom" && customStartDate === "2025-12-31" && customEndDate === "2025-12-31")) {
+                      e.currentTarget.style.backgroundColor = "#333";
+                    }
+                  }}
+                >
+                  🎉 NYE
+                </button>
+                <button
+                  onClick={() => {
                     setDateRangeType("custom");
                     setSelectedDate("");
                   }}
                   style={{
                     padding: "clamp(8px, 2vw, 10px) clamp(16px, 3vw, 20px)",
                     fontSize: "clamp(12px, 2.5vw, 14px)",
-                    backgroundColor: dateRangeType === "custom" ? "#4a9eff" : "#333",
+                    backgroundColor: dateRangeType === "custom" && !(customStartDate === "2025-12-31" && customEndDate === "2025-12-31") ? "#4a9eff" : "#333",
                     color: "#ffffff",
-                    border: dateRangeType === "custom" ? "2px solid #4a9eff" : "1px solid #555",
+                    border: dateRangeType === "custom" && !(customStartDate === "2025-12-31" && customEndDate === "2025-12-31") ? "2px solid #4a9eff" : "1px solid #555",
                     borderRadius: "4px",
                     cursor: "pointer",
-                    fontWeight: dateRangeType === "custom" ? "600" : "normal",
+                    fontWeight: dateRangeType === "custom" && !(customStartDate === "2025-12-31" && customEndDate === "2025-12-31") ? "600" : "normal",
                     whiteSpace: "nowrap",
                     flex: "1 1 auto",
                     minWidth: "120px",
                   }}
                   onMouseOver={(e) => {
-                    if (dateRangeType !== "custom") {
+                    if (!(dateRangeType === "custom" && !(customStartDate === "2025-12-31" && customEndDate === "2025-12-31"))) {
                       e.currentTarget.style.backgroundColor = "#444";
                     }
                   }}
                   onMouseOut={(e) => {
-                    if (dateRangeType !== "custom") {
+                    if (!(dateRangeType === "custom" && !(customStartDate === "2025-12-31" && customEndDate === "2025-12-31"))) {
                       e.currentTarget.style.backgroundColor = "#333";
                     }
                   }}
