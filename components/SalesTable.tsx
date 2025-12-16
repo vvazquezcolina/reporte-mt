@@ -38,56 +38,109 @@ function cleanProductName(name: string): string {
   // Eliminar información de precio entre paréntesis: (23,000.00) o ($23,000.00)
   cleaned = cleaned.replace(/\s*\([^)]*\)\s*/g, "");
   
+  // Eliminar "N/A" de manera más robusta (al inicio, al final, en medio, con o sin espacios)
+  // También eliminar variantes como "N A", "NA", etc.
+  cleaned = cleaned.replace(/\s*N\s*\/?\s*A\s*/gi, " ");
+  cleaned = cleaned.replace(/\s*NA\s*/gi, " ");
+  
   // Eliminar espacios múltiples y reemplazar por uno solo
-  cleaned = cleaned.replace(/\s+/g, " ");
+  cleaned = cleaned.replace(/\s+/g, " ").trim();
   
-  // Eliminar "N/A" al final o en cualquier parte del nombre
-  cleaned = cleaned.replace(/\s*N\/A\s*/gi, " ").trim();
-  
-  // Detectar y eliminar repeticiones del nombre
-  // Caso 1: Repetición exacta separada por espacios (ej: "DINNER TICKET  DINNER TICKET")
+  // Detectar y eliminar repeticiones de palabras consecutivas
+  // Caso 1: Palabras consecutivas idénticas (ej: "SILVER SILVER" -> "SILVER")
   const words = cleaned.split(/\s+/);
-  if (words.length >= 4) {
-    // Buscar si la primera mitad se repite en la segunda mitad
-    const midPoint = Math.floor(words.length / 2);
-    const firstHalf = words.slice(0, midPoint);
-    const secondHalf = words.slice(midPoint);
-    
-    // Verificar si la segunda mitad comienza igual que la primera
-    if (firstHalf.length > 0 && secondHalf.length >= firstHalf.length) {
-      const firstHalfStr = firstHalf.join(" ").toLowerCase();
-      const secondHalfStart = secondHalf.slice(0, firstHalf.length).join(" ").toLowerCase();
+  const deduplicatedWords: string[] = [];
+  for (let i = 0; i < words.length; i++) {
+    // Si la palabra actual es diferente a la anterior, o es la primera, agregarla
+    if (i === 0 || words[i].toLowerCase() !== words[i - 1].toLowerCase()) {
+      deduplicatedWords.push(words[i]);
+    }
+  }
+  cleaned = deduplicatedWords.join(" ");
+  
+  // Caso 2: Repetición exacta de frases completas (ej: "NYE BRONZE NYE BRONZE" -> "NYE BRONZE")
+  const cleanedWords = cleaned.split(/\s+/);
+  if (cleanedWords.length >= 2) {
+    // Buscar repetición desde el inicio
+    for (let i = 1; i <= Math.floor(cleanedWords.length / 2); i++) {
+      const firstPart = cleanedWords.slice(0, i).join(" ").toLowerCase();
+      const secondPart = cleanedWords.slice(i, i * 2).join(" ").toLowerCase();
       
-      // Si coinciden exactamente o casi exactamente, eliminar la repetición
-      if (firstHalfStr === secondHalfStart || 
-          (firstHalfStr.length > 10 && secondHalfStart.startsWith(firstHalfStr.substring(0, Math.min(15, firstHalfStr.length))))) {
-        cleaned = firstHalf.join(" ");
+      // Si la primera parte se repite exactamente en la segunda parte
+      if (firstPart === secondPart && firstPart.length > 0) {
+        cleaned = cleanedWords.slice(0, i).join(" ");
+        break;
       }
     }
   }
   
-  // Caso 2: Nombres truncados que se repiten (ej: "NYE Dinner Table Experience  NYE Dinner Table Expe")
-  // Buscar patrones donde hay una palabra o frase que se repite al final truncada
-  const cleanedWords = cleaned.split(/\s+/);
-  if (cleanedWords.length > 5) {
-    // Buscar si las últimas palabras son similares a las primeras
-    const startWords = cleanedWords.slice(0, 3).join(" ").toLowerCase();
-    const endWords = cleanedWords.slice(-3).join(" ").toLowerCase();
-    
-    if (startWords.length > 0 && endWords.length > 0) {
-      // Si las últimas palabras empiezan igual que las primeras, puede ser una repetición truncada
-      if (endWords.startsWith(startWords.substring(0, Math.min(10, startWords.length)))) {
-        // Tomar solo la primera parte completa
-        const firstCompletePart = cleanedWords.slice(0, Math.floor(cleanedWords.length * 0.6)).join(" ");
-        if (firstCompletePart.length > 10) {
-          cleaned = firstCompletePart;
+  // Caso 3: Repetición parcial o truncada (ej: "NYE Dinner Table Experience NYE Dinner Table Expe")
+  const finalWords = cleaned.split(/\s+/);
+  if (finalWords.length >= 4) {
+    // Buscar si hay una repetición parcial al final
+    for (let checkLength = 2; checkLength <= Math.floor(finalWords.length / 2); checkLength++) {
+      const startWords = finalWords.slice(0, checkLength).join(" ").toLowerCase();
+      const endWords = finalWords.slice(-checkLength).join(" ").toLowerCase();
+      
+      // Si las últimas palabras coinciden con las primeras, puede ser una repetición
+      if (startWords === endWords || 
+          (startWords.length > 5 && endWords.startsWith(startWords.substring(0, Math.min(startWords.length - 2, startWords.length))))) {
+        // Verificar si hay más palabras en medio que no se repiten
+        const middleWords = finalWords.slice(checkLength, -checkLength);
+        if (middleWords.length > 0) {
+          // Hay palabras en medio, mantener todo excepto la repetición final
+          cleaned = finalWords.slice(0, -checkLength).join(" ");
+        } else {
+          // No hay palabras en medio, es una repetición completa
+          cleaned = finalWords.slice(0, checkLength).join(" ");
         }
+        break;
       }
     }
+  }
+  
+  // Caso 4: Eliminar repeticiones de nombres de venues o palabras comunes al inicio/final
+  // Ejemplo: "VAGALUME GENERAL ACCESS VAGALUME" -> "GENERAL ACCESS"
+  const commonVenueWords = ["vagalume", "bagatelle", "bonbonniere", "mandala", "rakata", "abolengo"];
+  const finalWords2 = cleaned.split(/\s+/);
+  if (finalWords2.length >= 3) {
+    const firstWord = finalWords2[0].toLowerCase();
+    const lastWord = finalWords2[finalWords2.length - 1].toLowerCase();
+    
+    // Si la primera y última palabra son iguales y son nombres de venues comunes
+    if (firstWord === lastWord && commonVenueWords.includes(firstWord)) {
+      cleaned = finalWords2.slice(1, -1).join(" ");
+    }
+  }
+  
+  // Caso 5: Eliminar repeticiones de palabras clave comunes (NYE, GA, VIP, etc.)
+  const keywords = ["nye", "ga", "vip", "bronze", "silver", "gold", "platinum", "table", "access", "dinner", "experience"];
+  const finalWords3 = cleaned.split(/\s+/);
+  const seenKeywords = new Set<string>();
+  const filteredWords: string[] = [];
+  
+  for (const word of finalWords3) {
+    const lowerWord = word.toLowerCase();
+    // Si es una palabra clave y ya la hemos visto, no agregarla de nuevo
+    if (keywords.includes(lowerWord) && seenKeywords.has(lowerWord)) {
+      continue;
+    }
+    if (keywords.includes(lowerWord)) {
+      seenKeywords.add(lowerWord);
+    }
+    filteredWords.push(word);
+  }
+  
+  // Solo aplicar este filtro si no elimina demasiadas palabras importantes
+  if (filteredWords.length >= Math.ceil(finalWords3.length * 0.6)) {
+    cleaned = filteredWords.join(" ");
   }
   
   // Limpiar espacios al inicio y final nuevamente
   cleaned = cleaned.trim();
+  
+  // Eliminar espacios múltiples finales
+  cleaned = cleaned.replace(/\s+/g, " ");
   
   return cleaned || "COVER";
 }
@@ -99,9 +152,11 @@ function renameGeneralAccessForVagalume(items: SaleItem[], sucursal: number): Sa
     return items;
   }
 
-  // Separar items GENERAL ACCESS y NYE de los demás
+  // Separar items GENERAL ACCESS, NYE GA, NYE consumo y demás
   const generalAccessItems: SaleItem[] = [];
-  const nyeItems: SaleItem[] = [];
+  const nyeGAItems: SaleItem[] = [];
+  const nyeDinnerItems: SaleItem[] = [];
+  const nyeFamilyStyleItems: SaleItem[] = [];
   const otherItems: SaleItem[] = [];
 
   items.forEach((item) => {
@@ -109,9 +164,15 @@ function renameGeneralAccessForVagalume(items: SaleItem[], sucursal: number): Sa
     const isNYE = productoName.includes("NYE");
     const isGeneralAccess = productoName.includes("GENERAL ACCESS");
     const isGeneralAdmission = productoName.includes("GENERAL ADMISSION");
+    const isDinnerTable = productoName.includes("DINNER TABLE EXPERIENCE");
+    const isFamilyStyle = productoName.includes("FAMILY STYLE DINNER");
     
     if (isNYE && (isGeneralAccess || isGeneralAdmission)) {
-      nyeItems.push(item);
+      nyeGAItems.push(item);
+    } else if (isNYE && isDinnerTable) {
+      nyeDinnerItems.push(item);
+    } else if (isNYE && isFamilyStyle) {
+      nyeFamilyStyleItems.push(item);
     } else if (isGeneralAccess) {
       generalAccessItems.push(item);
     } else {
@@ -119,8 +180,9 @@ function renameGeneralAccessForVagalume(items: SaleItem[], sucursal: number): Sa
     }
   });
 
-  // Si no hay items GENERAL ACCESS ni NYE, retornar sin cambios
-  if (generalAccessItems.length === 0 && nyeItems.length === 0) {
+  // Si no hay items especiales, retornar sin cambios
+  if (generalAccessItems.length === 0 && nyeGAItems.length === 0 && 
+      nyeDinnerItems.length === 0 && nyeFamilyStyleItems.length === 0) {
     return items;
   }
 
@@ -184,11 +246,11 @@ function renameGeneralAccessForVagalume(items: SaleItem[], sucursal: number): Sa
     processedGAItems = Array.from(groupedGAItems.values());
   }
 
-  // Procesar items NYE
-  let processedNYEItems: SaleItem[] = [];
-  if (nyeItems.length > 0) {
+  // Procesar items NYE GA
+  let processedNYEGAItems: SaleItem[] = [];
+  if (nyeGAItems.length > 0) {
     const uniquePrices = Array.from(
-      new Set(nyeItems.map(item => parseFloat(item.precio) || 0))
+      new Set(nyeGAItems.map(item => parseFloat(item.precio) || 0))
     ).sort((a, b) => a - b);
 
     const priceToNameMap = new Map<number, string>();
@@ -204,26 +266,26 @@ function renameGeneralAccessForVagalume(items: SaleItem[], sucursal: number): Sa
       }
     });
 
-    const renamedNYEItems = nyeItems.map((item) => {
+    const renamedNYEGAItems = nyeGAItems.map((item) => {
       const precio = parseFloat(item.precio) || 0;
       const newName = priceToNameMap.get(precio) || item.producto;
       return { ...item, producto: newName };
     });
 
-    // Agrupar items NYE con mismo nombre y precio
-    const groupedNYEItems = new Map<string, SaleItem>();
-    renamedNYEItems.forEach((item) => {
+    // Agrupar items NYE GA con mismo nombre y precio
+    const groupedNYEGAItems = new Map<string, SaleItem>();
+    renamedNYEGAItems.forEach((item) => {
       const precio = parseFloat(item.precio) || 0;
       const newName = priceToNameMap.get(precio) || item.producto;
       const key = `${newName}_${precio}`;
       
-      if (groupedNYEItems.has(key)) {
-        const existing = groupedNYEItems.get(key)!;
+      if (groupedNYEGAItems.has(key)) {
+        const existing = groupedNYEGAItems.get(key)!;
         const reservas = (existing.reservas ?? existing.cantidad ?? 0) + (item.reservas ?? item.cantidad ?? 0);
         const pax = (existing.pax ?? 0) + (item.pax ?? 0);
         const total = (existing.total ?? 0) + (item.total ?? 0);
         
-        groupedNYEItems.set(key, {
+        groupedNYEGAItems.set(key, {
           ...existing,
           reservas,
           pax,
@@ -231,7 +293,7 @@ function renameGeneralAccessForVagalume(items: SaleItem[], sucursal: number): Sa
           cantidad: reservas,
         });
       } else {
-        groupedNYEItems.set(key, {
+        groupedNYEGAItems.set(key, {
           ...item,
           producto: newName,
           reservas: item.reservas ?? item.cantidad ?? 0,
@@ -241,11 +303,78 @@ function renameGeneralAccessForVagalume(items: SaleItem[], sucursal: number): Sa
         });
       }
     });
-    processedNYEItems = Array.from(groupedNYEItems.values());
+    processedNYEGAItems = Array.from(groupedNYEGAItems.values());
   }
 
+  // Función helper para procesar productos NYE de consumo
+  const processNYEConsumption = (items: SaleItem[], baseName: string): SaleItem[] => {
+    if (items.length === 0) return [];
+    
+    const uniquePrices = Array.from(
+      new Set(items.map(item => parseFloat(item.precio) || 0))
+    ).sort((a, b) => a - b);
+
+    const priceToNameMap = new Map<number, string>();
+    uniquePrices.forEach((price, index) => {
+      if (index === 0) {
+        priceToNameMap.set(price, `${baseName} - Early Bird`);
+      } else if (index === 1) {
+        priceToNameMap.set(price, `${baseName} - First Release`);
+      } else if (index === 2) {
+        priceToNameMap.set(price, `${baseName} - Second Release`);
+      } else {
+        priceToNameMap.set(price, `${baseName} - Third Release`);
+      }
+    });
+
+    const renamedItems = items.map((item) => {
+      const precio = parseFloat(item.precio) || 0;
+      const newName = priceToNameMap.get(precio) || item.producto;
+      return { ...item, producto: newName };
+    });
+
+    // Agrupar items con mismo nombre y precio
+    const groupedItems = new Map<string, SaleItem>();
+    renamedItems.forEach((item) => {
+      const precio = parseFloat(item.precio) || 0;
+      const newName = priceToNameMap.get(precio) || item.producto;
+      const key = `${newName}_${precio}`;
+      
+      if (groupedItems.has(key)) {
+        const existing = groupedItems.get(key)!;
+        const reservas = (existing.reservas ?? existing.cantidad ?? 0) + (item.reservas ?? item.cantidad ?? 0);
+        const pax = (existing.pax ?? 0) + (item.pax ?? 0);
+        const total = (existing.total ?? 0) + (item.total ?? 0);
+        
+        groupedItems.set(key, {
+          ...existing,
+          reservas,
+          pax,
+          total,
+          cantidad: reservas,
+        });
+      } else {
+        groupedItems.set(key, {
+          ...item,
+          producto: newName,
+          reservas: item.reservas ?? item.cantidad ?? 0,
+          pax: item.pax ?? 0,
+          total: item.total ?? 0,
+          cantidad: item.reservas ?? item.cantidad ?? 0,
+        });
+      }
+    });
+    return Array.from(groupedItems.values());
+  };
+
+  // Procesar items NYE Dinner Table Experience
+  const processedNYEDinnerItems = processNYEConsumption(nyeDinnerItems, "NYE Dinner Experience");
+
+  // Procesar items NYE Family Style Dinner
+  const processedNYEFamilyStyleItems = processNYEConsumption(nyeFamilyStyleItems, "NYE Family Style");
+
   // Combinar todos los items procesados con los demás
-  return [...processedGAItems, ...processedNYEItems, ...otherItems];
+  return [...processedGAItems, ...processedNYEGAItems, ...processedNYEDinnerItems, ...processedNYEFamilyStyleItems, ...otherItems];
 }
 
 export default function SalesTable({ data, locationName, hasIncomeAccess }: SalesTableProps) {
@@ -407,6 +536,15 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
         };
         dateGroup.rows.push(coverRow);
       } else {
+        // Agrupar items por producto y precio para evitar duplicados
+        const groupedItems = new Map<string, {
+          producto: string;
+          precio: string;
+          reservas: number;
+          personas: number;
+          total: number;
+        }>();
+        
         processedItems.forEach((item) => {
           // Usar reservas y pax directamente de la API, con fallback a cantidad y cálculo si no existen
           let reservas = item.reservas ?? item.cantidad ?? 0;
@@ -423,21 +561,46 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
             }
           }
           
+          // Crear clave única basada en producto limpio y precio
+          const cleanedProduct = cleanProductName(item.producto || "COVER");
+          const precioKey = parseFloat(item.precio) || 0;
+          const key = `${cleanedProduct}_${precioKey.toFixed(2)}`;
+          
+          if (groupedItems.has(key)) {
+            // Si ya existe, sumar los valores
+            const existing = groupedItems.get(key)!;
+            existing.reservas += reservas;
+            existing.personas += personas;
+            existing.total += item.total;
+          } else {
+            // Crear nuevo item agrupado
+            groupedItems.set(key, {
+              producto: cleanedProduct,
+              precio: formatPrice(item.precio, isEUR),
+              reservas,
+              personas,
+              total: item.total,
+            });
+          }
+        });
+        
+        // Convertir el Map a array y agregar las filas
+        Array.from(groupedItems.values()).forEach((groupedItem) => {
           const row = {
             fecha: formattedDate,
-            producto: cleanProductName(item.producto || "COVER"),
-            precio: formatPrice(item.precio, isEUR),
-            reservas: reservas,
-            personas: personas,
-            total: item.total,
+            producto: groupedItem.producto,
+            precio: groupedItem.precio,
+            reservas: groupedItem.reservas,
+            personas: groupedItem.personas,
+            total: groupedItem.total,
           };
           
           dateGroup.rows.push(row);
           
           // Acumular totales por fecha
-          dateGroup.totals.reservas += reservas;
-          dateGroup.totals.personas += personas;
-          dateGroup.totals.total += item.total;
+          dateGroup.totals.reservas += groupedItem.reservas;
+          dateGroup.totals.personas += groupedItem.personas;
+          dateGroup.totals.total += groupedItem.total;
         });
       }
     }
@@ -565,9 +728,11 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
         monthGroup.dateGroups.forEach((dateGroup) => {
           // Agregar filas de productos de esta fecha
           dateGroup.rows.forEach((row) => {
+            // Asegurar que el nombre del producto esté limpio (sin N/A ni repeticiones)
+            const cleanProduct = cleanProductName(row.producto || "COVER");
             tableData.push([
               row.fecha,
-              row.producto || "-",
+              cleanProduct || "-",
               row.precio,
               formatNumber(row.reservas, isEUR),
               formatNumber(row.personas, isEUR),

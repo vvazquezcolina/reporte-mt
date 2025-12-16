@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:random": "ts-node tests/random-sales-data.test.ts"
   },
   "dependencies": {
     "jspdf": "^3.0.3",

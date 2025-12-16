@@ -181,6 +181,15 @@ export const users: User[] = [
       "2026-01-07"
     ], // Solo puede acceder a estas fechas específicas de 2026
   },
+  
+  // BONBO OPERACION - Tulum, solo Bonbonniere Tulum (ID: 37)
+  {
+    username: "bonbo.operacion",
+    password: "bonbo.operacion2025",
+    cities: [], // No acceso por ciudad, solo por venue específico
+    venueIds: [37], // Solo Bonbonniere Tulum
+    hasIncomeAccess: true,
+  },
 ];
 
 export function validateUser(username: string, password: string): User | null {
