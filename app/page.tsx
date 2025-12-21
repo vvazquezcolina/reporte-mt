@@ -233,10 +233,38 @@ export default function Home() {
     setSelectedLocation(locationId);
     setSalesData([]);
     setSelectedDate("");
+    setError(null);
+    
+    // Reset Cancún (ID 92) solo tiene datos para el 31 de diciembre de 2025
+    if (locationId === 92) {
+      const resetDate = "2025-12-31";
+      setDateRangeType("custom");
+      setCustomStartDate(resetDate);
+      setCustomEndDate(resetDate);
+      
+      // Cargar datos automáticamente para esa fecha
+      setLoading(true);
+      setError(null);
+      try {
+        const items = await fetchSalesData(resetDate, locationId);
+        setSalesData([{
+          fecha: resetDate,
+          sucursal: locationId,
+          items,
+        }]);
+      } catch (err) {
+        setError("Error al cargar los datos. Por favor, intenta de nuevo.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+    
+    // Para otras sucursales, resetear fechas
     setCustomStartDate("");
     setCustomEndDate("");
     setDateRangeType("day");
-    setError(null);
     
     // Si el usuario tiene restricciones de fechas, cargar todas las fechas permitidas
     if (locationId && hasDateRestrictions()) {
@@ -290,6 +318,11 @@ export default function Home() {
 
   // Cargar datos cuando cambien las fechas del rango personalizado
   useEffect(() => {
+    // Reset Cancún (ID 92) maneja sus fechas en handleLocationChange, no aquí
+    if (selectedLocation === 92) {
+      return;
+    }
+    
     if (dateRangeType === "custom" && customStartDate && customEndDate && selectedLocation) {
       if (customStartDate <= customEndDate) {
         setError(null);
@@ -512,6 +545,23 @@ export default function Home() {
                     ℹ️ Solo tienes acceso a estas fechas. Los datos se cargarán automáticamente.
                   </div>
                 </div>
+              ) : selectedLocation === 92 ? (
+                // Reset Cancún: solo mostrar la fecha disponible (31 dic 2025)
+                <div>
+                  <div
+                    style={{
+                      padding: "12px",
+                      backgroundColor: "#1a3a1a",
+                      border: "1px solid #2a5a2a",
+                      borderRadius: "4px",
+                      marginBottom: "15px",
+                      fontSize: "clamp(12px, 2.5vw, 14px)",
+                      color: "#90ee90",
+                    }}
+                  >
+                    ℹ️ Reset Cancún solo tiene datos disponibles para el <strong>31 de diciembre de 2025</strong>. Los datos se cargarán automáticamente.
+                  </div>
+                </div>
               ) : (
                 // Usuario sin restricciones: mostrar selectores normales
                 <>
@@ -680,7 +730,7 @@ export default function Home() {
                   Otro rango personalizado
                 </button>
               </div>
-              {dateRangeType === "custom" && (
+              {dateRangeType === "custom" && selectedLocation !== 92 && (
                 <div style={{ marginTop: "10px" }}>
                   <label
                     style={{
