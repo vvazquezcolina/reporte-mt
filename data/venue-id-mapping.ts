@@ -12,6 +12,7 @@ export const oldIdToNewId: Record<number, number> = {
   22: 27, // Abolengo Cancún -> row_id 27 (ABOLENGO VALLARTA en SQL - usar el más cercano disponible)
   32: 8,  // Rakata Cancún -> row_id 8
   53: 21, // HOF Cancún -> row_id 21
+  92: 92, // Reset Cancún -> row_id 92
   
   // Playa del Carmen
   10: 11, // Mandala Playa -> row_id 11

@@ -26,6 +26,7 @@ const cancunLocations: Location[] = [
   createLocation(22, "Abolengo Cancún"),
   createLocation(32, "Rakata Cancún"),
   createLocation(53, "HOF Cancún"),
+  createLocation(92, "Reset Cancún"),
 ];
 
 const playaLocations: Location[] = [

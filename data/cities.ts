@@ -2,7 +2,7 @@ import { City } from "./users";
 
 // Mapeo de ciudades a venue IDs basado en SUCURSALES MT.csv
 export const cityToVenueIds: Record<City, number[]> = {
-  "Cancún": [1, 2, 3, 4, 6, 7, 9, 22, 32, 53], // CANCUN
+  "Cancún": [1, 2, 3, 4, 6, 7, 9, 22, 32, 53, 92], // CANCUN
   "Tulum": [36, 37, 38, 41, 51], // TULUM
   "Vallarta": [14, 15, 16, 17, 24, 25, 27, 33, 34, 39, 40], // PVR
   "Cabos": [18, 20], // CABO
@@ -27,6 +27,7 @@ export const venueIdToCity: Record<number, City> = {
   22: "Cancún", // ABOLENGO
   32: "Cancún", // RAKATA
   53: "Cancún", // HOF
+  92: "Cancún", // RESET
   
   // Tulum
   36: "Tulum", // TEHMPLO

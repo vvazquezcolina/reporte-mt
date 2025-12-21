@@ -145,6 +145,149 @@ function cleanProductName(name: string): string {
   return cleaned || "COVER";
 }
 
+// Función para renombrar productos para Reset Cancún según precio
+function renameProductsForResetCancun(items: SaleItem[], sucursal: number): SaleItem[] {
+  // Solo aplicar a Reset Cancún (ID: 92)
+  if (sucursal !== 92) {
+    return items;
+  }
+
+  // Separar items de tickets y parking
+  const ticketItems: SaleItem[] = [];
+  const parkingItems: SaleItem[] = [];
+  const otherItems: SaleItem[] = [];
+
+  items.forEach((item) => {
+    const productoName = item.producto?.toUpperCase() || "";
+    const isParking = productoName.includes("PARKING");
+    
+    if (isParking) {
+      parkingItems.push(item);
+    } else {
+      // Todos los demás son tickets
+      ticketItems.push(item);
+    }
+  });
+
+  // Procesar tickets según precio
+  let processedTicketItems: SaleItem[] = [];
+  if (ticketItems.length > 0) {
+    const uniquePrices = Array.from(
+      new Set(ticketItems.map(item => parseFloat(item.precio) || 0))
+    ).sort((a, b) => a - b);
+
+    const priceToNameMap = new Map<number, string>();
+    uniquePrices.forEach((price) => {
+      // Mapear precios a nombres según los valores especificados
+      if (price === 750) {
+        priceToNameMap.set(price, "Early Bird");
+      } else if (price === 1000) {
+        priceToNameMap.set(price, "Tier 1");
+      } else if (price === 1500) {
+        priceToNameMap.set(price, "Tier 2");
+      } else if (price === 2000) {
+        priceToNameMap.set(price, "Last Call");
+      } else {
+        // Si el precio no coincide exactamente, usar el más cercano
+        if (price <= 875) {
+          priceToNameMap.set(price, "Early Bird");
+        } else if (price <= 1250) {
+          priceToNameMap.set(price, "Tier 1");
+        } else if (price <= 1750) {
+          priceToNameMap.set(price, "Tier 2");
+        } else {
+          priceToNameMap.set(price, "Last Call");
+        }
+      }
+    });
+
+    const renamedTicketItems = ticketItems.map((item) => {
+      const precio = parseFloat(item.precio) || 0;
+      const newName = priceToNameMap.get(precio) || item.producto;
+      return { ...item, producto: newName };
+    });
+
+    // Agrupar items con mismo nombre y precio
+    const groupedTicketItems = new Map<string, SaleItem>();
+    renamedTicketItems.forEach((item) => {
+      const precio = parseFloat(item.precio) || 0;
+      const newName = priceToNameMap.get(precio) || item.producto;
+      const key = `${newName}_${precio}`;
+      
+      if (groupedTicketItems.has(key)) {
+        const existing = groupedTicketItems.get(key)!;
+        const reservas = (existing.reservas ?? existing.cantidad ?? 0) + (item.reservas ?? item.cantidad ?? 0);
+        const pax = (existing.pax ?? 0) + (item.pax ?? 0);
+        const total = (existing.total ?? 0) + (item.total ?? 0);
+        
+        groupedTicketItems.set(key, {
+          ...existing,
+          reservas,
+          pax,
+          total,
+          cantidad: reservas,
+        });
+      } else {
+        groupedTicketItems.set(key, {
+          ...item,
+          producto: newName,
+          reservas: item.reservas ?? item.cantidad ?? 0,
+          pax: item.pax ?? 0,
+          total: item.total ?? 0,
+          cantidad: item.reservas ?? item.cantidad ?? 0,
+        });
+      }
+    });
+    processedTicketItems = Array.from(groupedTicketItems.values());
+  }
+
+  // Procesar parking: asegurar precio fijo de 300 MXN por ticket
+  let processedParkingItems: SaleItem[] = [];
+  if (parkingItems.length > 0) {
+    const groupedParkingItems = new Map<string, SaleItem>();
+    
+    parkingItems.forEach((item) => {
+      const reservas = item.reservas ?? item.cantidad ?? 0;
+      const precioFijo = 300; // Precio fijo por ticket
+      const totalCorrecto = reservas * precioFijo;
+      
+      // Agrupar todos los items de parking en uno solo
+      const key = "PARKING";
+      
+      if (groupedParkingItems.has(key)) {
+        const existing = groupedParkingItems.get(key)!;
+        const reservasTotal = (existing.reservas ?? existing.cantidad ?? 0) + reservas;
+        const paxTotal = (existing.pax ?? 0) + (item.pax ?? 0);
+        const totalTotal = reservasTotal * precioFijo;
+        
+        groupedParkingItems.set(key, {
+          ...existing,
+          producto: "PARKING",
+          precio: precioFijo.toFixed(2),
+          reservas: reservasTotal,
+          pax: paxTotal,
+          total: totalTotal,
+          cantidad: reservasTotal,
+        });
+      } else {
+        groupedParkingItems.set(key, {
+          ...item,
+          producto: "PARKING",
+          precio: precioFijo.toFixed(2),
+          reservas: reservas,
+          pax: item.pax ?? reservas,
+          total: totalCorrecto,
+          cantidad: reservas,
+        });
+      }
+    });
+    processedParkingItems = Array.from(groupedParkingItems.values());
+  }
+
+  // Combinar todos los items procesados
+  return [...processedTicketItems, ...processedParkingItems, ...otherItems];
+}
+
 // Función para renombrar GENERAL ACCESS para Vagalume Tulum según precio
 function renameGeneralAccessForVagalume(items: SaleItem[], sucursal: number): SaleItem[] {
   // Solo aplicar a Vagalume Tulum (ID: 38)
@@ -532,8 +675,11 @@ export default function SalesTable({ data, locationName, hasIncomeAccess }: Sale
         console.log(`[Rakata Debug] Fecha: ${salesData.fecha}, Items totales: ${salesData.items.length}, Items válidos: ${validItems.length}`);
       }
 
+      // Renombrar productos para Reset Cancún según precio
+      let processedItems = renameProductsForResetCancun(validItems, salesData.sucursal);
+      
       // Renombrar GENERAL ACCESS para Vagalume Tulum según precio
-      const processedItems = renameGeneralAccessForVagalume(validItems, salesData.sucursal);
+      processedItems = renameGeneralAccessForVagalume(processedItems, salesData.sucursal);
 
       if (processedItems.length === 0) {
         const coverRow = {
