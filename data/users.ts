@@ -190,6 +190,15 @@ export const users: User[] = [
     venueIds: [37], // Solo Bonbonniere Tulum
     hasIncomeAccess: true,
   },
+  
+  // ANDERSON - Cancún, solo Reset Cancún (ID: 92)
+  {
+    username: "andersons",
+    password: "4ndersons*%2025",
+    cities: [], // No acceso por ciudad, solo por venue específico
+    venueIds: [92], // Solo Reset Cancún
+    hasIncomeAccess: true,
+  },
 ];
 
 export function validateUser(username: string, password: string): User | null {
