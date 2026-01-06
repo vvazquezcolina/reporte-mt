@@ -165,7 +165,8 @@ export const users: User[] = [
     hasIncomeAccess: true,
     allowedDates: [
       "2026-01-02",
-      "2026-01-07"
+      "2026-01-07",
+      "2026-01-08"
     ], // Solo puede acceder a estas fechas específicas de 2026
   },
   
@@ -178,7 +179,8 @@ export const users: User[] = [
     hasIncomeAccess: true,
     allowedDates: [
       "2026-01-02",
-      "2026-01-07"
+      "2026-01-07",
+      "2026-01-08"
     ], // Solo puede acceder a estas fechas específicas de 2026
   },
   
