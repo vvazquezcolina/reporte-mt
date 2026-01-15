@@ -114,12 +114,12 @@ export const users: User[] = [
     hasIncomeAccess: true,
   },
   
-  // LESTER - Tulum, solo Vagalume Tulum (ID: 38)
+  // LESTER - Tulum, Vagalume Tulum (ID: 38) y Bonbonniere Tulum (ID: 37)
   {
     username: "lester",
     password: "lester2025",
     cities: [], // No acceso por ciudad, solo por venue específico
-    venueIds: [38], // Solo Vagalume Tulum
+    venueIds: [38, 37], // Vagalume Tulum y Bonbonniere Tulum
     hasIncomeAccess: true,
   },
   

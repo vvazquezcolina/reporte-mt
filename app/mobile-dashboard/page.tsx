@@ -62,12 +62,6 @@ export default function MobileDashboard() {
     }
   };
 
-  const handleNYEClick = () => {
-    const nyeDate = "2025-12-31";
-    setDateRangeType("range");
-    setCustomRange({ start: nyeDate, end: nyeDate });
-  };
-
   const filters: DashboardFilters | null = useMemo(() => {
     if (!selectedLocation) {
       return null;
@@ -190,16 +184,6 @@ export default function MobileDashboard() {
                 </button>
               );
             })}
-            <button
-              onClick={handleNYEClick}
-              className={`mobile-dashboard__pill ${
-                dateRangeType === "range" && customRange.start === "2025-12-31" && customRange.end === "2025-12-31"
-                  ? "mobile-dashboard__pill--active mobile-dashboard__pill--nye"
-                  : ""
-              }`}
-            >
-              🎉 NYE
-            </button>
           </div>
         </div>
 
@@ -417,11 +401,6 @@ export default function MobileDashboard() {
           border-color: #d4af37;
           background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05));
           transform: translateY(-1px);
-        }
-
-        .mobile-dashboard__pill--nye.mobile-dashboard__pill--active {
-          border-color: #d4af37;
-          background: linear-gradient(135deg, rgba(212, 175, 55, 0.25), rgba(212, 175, 55, 0.1));
         }
 
         .mobile-dashboard__pill:active {
